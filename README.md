@@ -144,11 +144,6 @@ supabase db push
 
 ---
 
-## Deploy
-
-Ver [`DEPLOY.md`](./DEPLOY.md) para la guía completa paso a paso.
-
----
 
 ## Documentación adicional
 
