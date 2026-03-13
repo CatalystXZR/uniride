@@ -144,9 +144,3 @@ supabase db push
 
 ---
 
-
-## Documentación adicional
-
-- [`DEPLOY.md`](./DEPLOY.md) — Guía de despliegue completa
-- [`DOSSIER_TECNICO.md`](./DOSSIER_TECNICO.md) — Arquitectura, decisiones técnicas y descripción de cada componente
-- [`CONTEXTO_IA.md`](./CONTEXTO_IA.md) — Contexto para retomar el desarrollo con una IA
