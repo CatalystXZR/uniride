@@ -1,0 +1,72 @@
+/**
+ *
+ * Project: TurnoApp
+ *
+ * Original Concept: Agustín Puelma, Cristobal Cordova, Carlos Ibarra
+ *
+ * Software Architecture & Code: Matías Toledo (catalystxzr)
+ *
+ * Description: Production-grade implementation for UDD carpooling system.
+ *
+ * Copyright (c) 2026. All rights reserved.
+ *
+ */
+
+import '../core/supabase_client.dart';
+import '../models/wallet.dart';
+import '../models/transaction.dart';
+
+class WalletService {
+  final _client = SupabaseConfig.client;
+
+  Future<Wallet?> getWallet() async {
+    final uid = _client.auth.currentUser?.id;
+    if (uid == null) return null;
+
+    final data = await _client
+        .from('wallets')
+        .select()
+        .eq('user_id', uid)
+        .maybeSingle();
+
+    if (data == null) return null;
+    return Wallet.fromJson(data);
+  }
+
+  Future<List<Transaction>> getTransactions({int limit = 30}) async {
+    final uid = _client.auth.currentUser!.id;
+    final rows = await _client
+        .from('transactions')
+        .select()
+        .eq('user_id', uid)
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return rows.map(Transaction.fromJson).toList();
+  }
+
+  /// Calls a Supabase Edge Function that creates a Mercado Pago preference.
+  /// Returns the `init_point` URL to launch the checkout.
+  Future<String> createTopupIntent(int amountCLP) async {
+    final response = await _client.functions.invoke(
+      'create-topup-intent',
+      body: {'amount': amountCLP},
+    );
+
+    if (response.data == null) {
+      throw Exception('No se pudo conectar con el proveedor de pagos.');
+    }
+
+    final data = response.data as Map<String, dynamic>;
+
+    if (data.containsKey('error')) {
+      throw Exception(data['error'] as String? ?? 'Error en el proveedor de pagos.');
+    }
+
+    final initPoint = data['init_point'];
+    if (initPoint == null || initPoint is! String || initPoint.isEmpty) {
+      throw Exception('Respuesta inválida del proveedor de pagos.');
+    }
+
+    return initPoint;
+  }
+}

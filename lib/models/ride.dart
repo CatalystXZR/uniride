@@ -1,0 +1,95 @@
+/**
+ *
+ * Project: TurnoApp
+ *
+ * Original Concept: Agustín Puelma, Cristobal Cordova, Carlos Ibarra
+ *
+ * Software Architecture & Code: Matías Toledo (catalystxzr)
+ *
+ * Description: Production-grade implementation for UDD carpooling system.
+ *
+ * Copyright (c) 2026. All rights reserved.
+ *
+ */
+
+import 'enums.dart';
+
+class Ride {
+  final String id;
+  final String driverId;
+  final String universityId;
+  final String campusId;
+  final String originCommune;
+  final RideDirection direction;
+  final DateTime departureAt;
+  final int seatPrice;
+  final int seatsTotal;
+  final int seatsAvailable;
+  final String status; // active | cancelled | completed
+  final DateTime createdAt;
+
+  // Optional joined fields
+  final String? driverName;
+  final String? universityName;
+  final String? campusName;
+
+  const Ride({
+    required this.id,
+    required this.driverId,
+    required this.universityId,
+    required this.campusId,
+    required this.originCommune,
+    required this.direction,
+    required this.departureAt,
+    required this.seatPrice,
+    required this.seatsTotal,
+    required this.seatsAvailable,
+    required this.status,
+    required this.createdAt,
+    this.driverName,
+    this.universityName,
+    this.campusName,
+  });
+
+  factory Ride.fromJson(Map<String, dynamic> json) {
+    return Ride(
+      id: json['id'] as String,
+      driverId: json['driver_id'] as String,
+      universityId: json['university_id'] as String,
+      campusId: json['campus_id'] as String,
+      originCommune: json['origin_commune'] as String,
+      direction: json['direction'] == 'to_campus'
+          ? RideDirection.toCampus
+          : RideDirection.fromCampus,
+      departureAt: DateTime.parse(json['departure_at'] as String),
+      seatPrice: (json['seat_price'] as int?) ?? 2000,
+      seatsTotal: json['seats_total'] as int,
+      seatsAvailable: json['seats_available'] as int,
+      status: (json['status'] as String?) ?? 'active',
+      createdAt: DateTime.parse(json['created_at'] as String),
+      driverName: json['driver_name'] as String?,
+      universityName: json['university_name'] as String?,
+      campusName: json['campus_name'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toInsertJson() => {
+        'driver_id': driverId,
+        'university_id': universityId,
+        'campus_id': campusId,
+        'origin_commune': originCommune,
+        'direction': direction == RideDirection.toCampus
+            ? 'to_campus'
+            : 'from_campus',
+        'departure_at': departureAt.toIso8601String(),
+        'seat_price': seatPrice,
+        'seats_total': seatsTotal,
+        'seats_available': seatsAvailable,
+      };
+
+  bool get isFull => seatsAvailable == 0;
+  bool get isActive => status == 'active';
+
+  String get directionLabel =>
+      direction == RideDirection.toCampus ? 'Hacia campus' : 'Desde campus';
+}
