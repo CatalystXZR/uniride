@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants.dart';
+import '../../core/error_mapper.dart';
 import '../../models/wallet.dart';
 import '../../models/transaction.dart';
 import '../../services/wallet_service.dart';
@@ -47,47 +48,73 @@ class _WalletScreenState extends State<WalletScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final results = await Future.wait([
-      _walletService.getWallet(),
-      _walletService.getTransactions(),
-    ]);
-    if (mounted) {
-      setState(() {
-        _wallet = results[0] as Wallet?;
-        _transactions = results[1] as List<Transaction>;
-        _loading = false;
-      });
+    try {
+      final results = await Future.wait([
+        _walletService.getWallet(),
+        _walletService.getTransactions(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _wallet = results[0] as Wallet?;
+          _transactions = results[1] as List<Transaction>;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos cargar tu billetera.',
+          ),
+          isError: true,
+        );
+      }
     }
   }
 
   Future<void> _startTopup() async {
-    final amounts = [2000, 4000, 6000, 10000, 20000];
     int? selected = await showModalBottomSheet<int>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Selecciona monto a recargar',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            Text(
+              'Selecciona monto a recargar',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Recarga segura con Mercado Pago.',
+              style: TextStyle(color: Color(0xFF5F6E7C), fontSize: 13),
+            ),
             const SizedBox(height: 16),
             Wrap(
               spacing: 10,
               runSpacing: 10,
-              children: amounts.map((a) {
+              children: AppConstants.quickTopupAmountsCLP.map((a) {
                 final fmt = NumberFormat.currency(
                   locale: 'es_CL',
                   symbol: '\$',
                   decimalDigits: 0,
                 ).format(a);
                 return ActionChip(
-                  label: Text(fmt,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  side: const BorderSide(color: Color(0xFFD6E1EA)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  label: Text(
+                    fmt,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                   onPressed: () => Navigator.pop(ctx, a),
                 );
               }).toList(),
@@ -107,10 +134,21 @@ class _WalletScreenState extends State<WalletScreen> {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        if (mounted) AppSnackbar.show(context, 'No se pudo abrir el pago', isError: true);
+        if (mounted) {
+          AppSnackbar.show(context, 'No se pudo abrir el pago', isError: true);
+        }
       }
     } catch (e) {
-      if (mounted) AppSnackbar.show(context, e.toString(), isError: true);
+      if (mounted) {
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos iniciar la recarga. Intenta nuevamente.',
+          ),
+          isError: true,
+        );
+      }
     } finally {
       if (mounted) setState(() => _topupLoading = false);
     }
@@ -160,7 +198,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   final n = int.tryParse(v?.trim() ?? '');
                   if (n == null) return 'Ingresa un número válido';
                   if (n < AppConstants.minWithdrawalCLP) {
-                    return 'Mínimo \$${AppConstants.minWithdrawalCLP}';
+                    return 'Minimo \$${AppConstants.minWithdrawalCLP}';
                   }
                   if (n > balance) return 'Supera tu saldo disponible';
                   return null;
@@ -203,7 +241,16 @@ class _WalletScreenState extends State<WalletScreen> {
         _load();
       }
     } catch (e) {
-      if (mounted) AppSnackbar.show(context, e.toString(), isError: true);
+      if (mounted) {
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos enviar la solicitud de retiro.',
+          ),
+          isError: true,
+        );
+      }
     }
   }
 
@@ -239,63 +286,90 @@ class _WalletScreenState extends State<WalletScreen> {
             : RefreshIndicator(
                 onRefresh: _load,
                 child: ListView(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   children: [
-                    // Balance card
-                    Card(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Saldo disponible',
-                                style: TextStyle(
-                                    fontSize: 13, color: Colors.black54)),
-                            const SizedBox(height: 4),
-                            Text(
-                              balanceFmt,
-                              style: const TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w800),
-                            ),
-                            if ((_wallet?.balanceHeld ?? 0) > 0) ...[
-                              const SizedBox(height: 4),
-                              Text('$heldFmt en reservas activas',
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.black54)),
-                            ],
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: _startTopup,
-                                    icon: const Icon(Icons.add),
-                                    label: const Text('Recargar'),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: _requestWithdrawal,
-                                    icon: const Icon(Icons.arrow_downward),
-                                    label: const Text('Retirar'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF1E5B7A), Color(0xFF2A6C8E)],
                         ),
                       ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Saldo disponible',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFFD7E8F2),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            balanceFmt,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 34,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          if ((_wallet?.balanceHeld ?? 0) > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '$heldFmt en reservas activas',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFFD7E8F2),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _startTopup,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: const Color(0xFF1E5B7A),
+                                  ),
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('Recargar'),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _requestWithdrawal,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    side: const BorderSide(
+                                      color: Color(0xFFD5E7F3),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.arrow_downward),
+                                  label: const Text('Retirar'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 18),
 
                     if (_transactions.isNotEmpty) ...[
-                      const Text('Historial',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 16)),
+                      Text(
+                        'Historial',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
                       const SizedBox(height: 8),
                       ..._transactions
                           .map((tx) => _TransactionTile(tx: tx))
@@ -304,8 +378,10 @@ class _WalletScreenState extends State<WalletScreen> {
                       const Center(
                         child: Padding(
                           padding: EdgeInsets.all(32),
-                          child: Text('Sin movimientos aún',
-                              style: TextStyle(color: Colors.grey)),
+                          child: Text(
+                            'Sin movimientos aun',
+                            style: TextStyle(color: Color(0xFF6A7783)),
+                          ),
                         ),
                       ),
                   ],
@@ -331,26 +407,30 @@ class _TransactionTile extends StatelessWidget {
         DateFormat('d MMM, HH:mm', 'es').format(tx.createdAt.toLocal());
     final isCredit = tx.amount > 0;
 
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor:
-            isCredit ? Colors.green.shade50 : Colors.red.shade50,
-        child: Icon(
-          isCredit ? Icons.arrow_downward : Icons.arrow_upward,
-          color: isCredit ? Colors.green : Colors.redAccent,
-          size: 18,
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        leading: CircleAvatar(
+          backgroundColor:
+              isCredit ? const Color(0xFFE9F6EE) : const Color(0xFFFCEDEF),
+          child: Icon(
+            isCredit ? Icons.arrow_downward : Icons.arrow_upward,
+            color: isCredit ? const Color(0xFF1B734D) : const Color(0xFF8A2F43),
+            size: 18,
+          ),
         ),
-      ),
-      title: Text(tx.typeLabel,
-          style: const TextStyle(fontWeight: FontWeight.w500)),
-      subtitle: Text(dateFmt,
-          style: const TextStyle(fontSize: 12, color: Colors.grey)),
-      trailing: Text(
-        '${isCredit ? '+' : '-'}$amtFmt',
-        style: TextStyle(
-          color: isCredit ? Colors.green : Colors.redAccent,
-          fontWeight: FontWeight.w700,
-          fontSize: 15,
+        title: Text(tx.typeLabel,
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(dateFmt,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6A7783))),
+        trailing: Text(
+          '${isCredit ? '+' : '-'}$amtFmt',
+          style: TextStyle(
+            color: isCredit ? const Color(0xFF1B734D) : const Color(0xFF8A2F43),
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
         ),
       ),
     );

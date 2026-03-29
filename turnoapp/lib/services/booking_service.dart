@@ -43,8 +43,18 @@ class BookingService {
     });
   }
 
+  Future<void> reportDriverNoShow(
+    String bookingId, {
+    String? notes,
+  }) async {
+    await _client.rpc('passenger_report_no_show', params: {
+      'p_booking_id': bookingId,
+      'p_notes': notes,
+    });
+  }
+
   /// Returns all bookings for the current passenger.
-  Future<List<Booking>> getMyBookings() async {
+  Future<List<Booking>> getMyBookings({int limit = 80}) async {
     final uid = _client.auth.currentUser!.id;
     final rows = await _client
         .from('bookings')
@@ -55,10 +65,18 @@ class BookingService {
             departure_at,
             universities!university_id(name),
             campuses!campus_id(name)
+          ),
+          users_profile!passenger_id(
+            full_name,
+            rating_avg,
+            profile_photo_url,
+            vehicle_plate,
+            vehicle_model
           )
         ''')
         .eq('passenger_id', uid)
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(limit);
 
     return rows.map((row) {
       final flat = Map<String, dynamic>.from(row);
@@ -68,13 +86,19 @@ class BookingService {
       flat['university_name'] =
           (ride?['universities'] as Map?)?['name'];
       flat['campus_name'] = (ride?['campuses'] as Map?)?['name'];
+      final passenger = row['users_profile'] as Map?;
+      flat['passenger_name'] = passenger?['full_name'];
+      flat['passenger_rating'] = passenger?['rating_avg'];
+      flat['passenger_photo_url'] = passenger?['profile_photo_url'];
+      flat['passenger_vehicle_plate'] = passenger?['vehicle_plate'];
+      flat['passenger_vehicle_model'] = passenger?['vehicle_model'];
       return Booking.fromJson(flat);
     }).toList();
   }
 
   /// Returns bookings on rides driven by the current user.
   /// Fetches the driver's ride IDs first, then queries bookings for those rides.
-  Future<List<Booking>> getBookingsForMyRides() async {
+  Future<List<Booking>> getBookingsForMyRides({int limit = 100}) async {
     final uid = _client.auth.currentUser!.id;
 
     // Step 1: get all ride IDs owned by this driver
@@ -95,10 +119,18 @@ class BookingService {
           rides!ride_id(origin_commune, departure_at,
             universities!university_id(name),
             campuses!campus_id(name)
+          ),
+          users_profile!passenger_id(
+            full_name,
+            rating_avg,
+            profile_photo_url,
+            vehicle_plate,
+            vehicle_model
           )
         ''')
         .inFilter('ride_id', rideIds)
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(limit);
 
     return rows.map((row) {
       final flat = Map<String, dynamic>.from(row);
@@ -107,6 +139,12 @@ class BookingService {
       flat['ride_departure_at']   = ride?['departure_at'];
       flat['university_name']     = (ride?['universities'] as Map?)?['name'];
       flat['campus_name']         = (ride?['campuses'] as Map?)?['name'];
+      final passenger = row['users_profile'] as Map?;
+      flat['passenger_name'] = passenger?['full_name'];
+      flat['passenger_rating'] = passenger?['rating_avg'];
+      flat['passenger_photo_url'] = passenger?['profile_photo_url'];
+      flat['passenger_vehicle_plate'] = passenger?['vehicle_plate'];
+      flat['passenger_vehicle_model'] = passenger?['vehicle_model'];
       return Booking.fromJson(flat);
     }).toList();
   }

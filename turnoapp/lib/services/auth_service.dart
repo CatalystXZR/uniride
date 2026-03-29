@@ -20,10 +20,10 @@ class AuthService {
 
   Session? get currentSession => _client.auth.currentSession;
   User? get currentUser => _client.auth.currentUser;
+  String? get currentUserId => currentUser?.id;
   bool get isLoggedIn => currentSession != null;
 
-  Stream<AuthState> get authStateChanges =>
-      _client.auth.onAuthStateChange;
+  Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
   /// Sign up with email + password. Creates auth.users entry;
   /// a DB trigger should insert into users_profile automatically.
@@ -31,11 +31,34 @@ class AuthService {
     required String email,
     required String password,
     required String fullName,
+    required bool acceptedTerms,
+    required String termsVersion,
+    bool hasValidLicense = false,
+    String roleMode = 'passenger',
+    String? vehicleBrand,
+    String? vehicleModel,
+    String? vehicleVersion,
+    int? vehicleDoors,
+    String? vehicleBodyType,
+    String? vehiclePlate,
   }) async {
     return _client.auth.signUp(
       email: email,
       password: password,
-      data: {'full_name': fullName},
+      data: {
+        'full_name': fullName,
+        'accepted_terms': acceptedTerms,
+        'terms_version': termsVersion,
+        'has_valid_license': hasValidLicense,
+        'role_mode': roleMode,
+        if (vehicleBrand != null) 'vehicle_brand': vehicleBrand,
+        if (vehicleModel != null) 'vehicle_model': vehicleModel,
+        if (vehicleVersion != null) 'vehicle_version': vehicleVersion,
+        if (vehicleDoors != null) 'vehicle_doors': vehicleDoors,
+        if (vehicleBodyType != null) 'vehicle_body_type': vehicleBodyType,
+        if (vehiclePlate != null)
+          'vehicle_plate': vehiclePlate.toUpperCase().replaceAll(' ', ''),
+      },
     );
   }
 

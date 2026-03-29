@@ -12,13 +12,151 @@
  *
  */
 
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase_client.dart';
+import 'dart:typed_data';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_profile.dart';
 import '../models/enums.dart';
 
 class ProfileService {
   final _client = SupabaseConfig.client;
+  static const String _profilePhotosBucket = 'profile-photos';
+
+  Future<void> saveBasicProfile({
+    required String userId,
+    required String fullName,
+    String? universityId,
+    bool? acceptedTerms,
+    String? termsVersion,
+    bool? hasValidLicense,
+    String? roleMode,
+    String? vehicleBrand,
+    String? vehicleModel,
+    String? vehicleVersion,
+    int? vehicleDoors,
+    String? vehicleBodyType,
+    String? vehiclePlate,
+  }) async {
+    await _client.from('users_profile').upsert({
+      'id': userId,
+      'full_name': fullName,
+      if (universityId != null) 'university_id': universityId,
+      if (acceptedTerms != null) 'accepted_terms': acceptedTerms,
+      if (acceptedTerms == true)
+        'accepted_terms_at': DateTime.now().toIso8601String(),
+      if (termsVersion != null) 'terms_version': termsVersion,
+      if (hasValidLicense != null) 'has_valid_license': hasValidLicense,
+      if (hasValidLicense == true)
+        'license_checked_at': DateTime.now().toIso8601String(),
+      if (roleMode != null) 'role_mode': roleMode,
+      if (vehicleBrand != null) 'vehicle_brand': vehicleBrand,
+      if (vehicleModel != null) 'vehicle_model': vehicleModel,
+      if (vehicleVersion != null) 'vehicle_version': vehicleVersion,
+      if (vehicleDoors != null) 'vehicle_doors': vehicleDoors,
+      if (vehicleBodyType != null) 'vehicle_body_type': vehicleBodyType,
+      if (vehiclePlate != null)
+        'vehicle_plate': vehiclePlate.toUpperCase().replaceAll(' ', ''),
+    });
+  }
+
+  Future<UserProfile> updateSafetyProfile({
+    required String emergencyContact,
+    String? safetyNotes,
+    bool? hasValidLicense,
+  }) async {
+    final uid = _client.auth.currentUser!.id;
+    final data = await _client
+        .from('users_profile')
+        .update({
+          'emergency_contact': emergencyContact,
+          'safety_notes': safetyNotes,
+          if (hasValidLicense != null) 'has_valid_license': hasValidLicense,
+          if (hasValidLicense == true)
+            'license_checked_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', uid)
+        .select()
+        .single();
+    return UserProfile.fromJson(data);
+  }
+
+  Future<UserProfile> updateProfileDetails({
+    required String fullName,
+    String? profilePhotoUrl,
+    String? vehicleModel,
+    String? vehicleBrand,
+    String? vehicleVersion,
+    int? vehicleDoors,
+    String? vehicleBodyType,
+    String? vehiclePlate,
+    String? vehicleColor,
+    String? emergencyContact,
+    String? safetyNotes,
+    bool? hasValidLicense,
+  }) async {
+    final uid = _client.auth.currentUser!.id;
+    final data = await _client
+        .from('users_profile')
+        .update({
+          'full_name': fullName,
+          'profile_photo_url': profilePhotoUrl,
+          'vehicle_brand': vehicleBrand,
+          'vehicle_model': vehicleModel,
+          'vehicle_version': vehicleVersion,
+          'vehicle_doors': vehicleDoors,
+          'vehicle_body_type': vehicleBodyType,
+          'vehicle_plate': vehiclePlate,
+          'vehicle_color': vehicleColor,
+          'emergency_contact': emergencyContact,
+          'safety_notes': safetyNotes,
+          if (hasValidLicense != null) 'has_valid_license': hasValidLicense,
+          if (hasValidLicense == true)
+            'license_checked_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', uid)
+        .select()
+        .single();
+    return UserProfile.fromJson(data);
+  }
+
+  Future<String> uploadProfilePhoto({
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    final uid = _client.auth.currentUser!.id;
+    final ext = _fileExtension(fileName);
+    final path = '$uid/avatar.$ext';
+
+    await _client.storage.from(_profilePhotosBucket).uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(
+            upsert: true,
+            cacheControl: '3600',
+            contentType: _contentTypeForExt(ext),
+          ),
+        );
+
+    return _client.storage.from(_profilePhotosBucket).getPublicUrl(path);
+  }
+
+  String _fileExtension(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (lower.endsWith('.png')) return 'png';
+    if (lower.endsWith('.webp')) return 'webp';
+    return 'jpg';
+  }
+
+  String _contentTypeForExt(String ext) {
+    switch (ext) {
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'image/jpeg';
+    }
+  }
 
   Future<UserProfile?> getProfile() async {
     final uid = _client.auth.currentUser?.id;
@@ -28,6 +166,17 @@ class ProfileService {
         .from('users_profile')
         .select()
         .eq('id', uid)
+        .maybeSingle();
+
+    if (data == null) return null;
+    return UserProfile.fromJson(data);
+  }
+
+  Future<UserProfile?> getProfileById(String userId) async {
+    final data = await _client
+        .from('users_profile')
+        .select()
+        .eq('id', userId)
         .maybeSingle();
 
     if (data == null) return null;

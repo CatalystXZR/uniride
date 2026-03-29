@@ -32,21 +32,37 @@ class LoadingOverlay extends StatelessWidget {
       children: [
         child,
         if (isLoading)
-          Container(
-            color: Colors.black26,
-            child: Center(
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircularProgressIndicator(),
-                      if (message != null) ...[
-                        const SizedBox(height: 12),
-                        Text(message!),
-                      ],
-                    ],
+          Positioned.fill(
+            child: ColoredBox(
+              color: const Color(0x9916212B),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  child: Card(
+                    color: const Color(0xFFFCFDFF),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 22,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(strokeWidth: 3),
+                          if (message != null) ...[
+                            const SizedBox(height: 14),
+                            Text(
+                              message!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),

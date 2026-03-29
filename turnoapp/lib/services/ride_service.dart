@@ -27,12 +27,23 @@ class RideService {
     return Ride.fromJson(data);
   }
 
+  Future<void> cancelRide(
+    String rideId, {
+    String reason = 'cancelled_by_driver',
+  }) async {
+    await _client.rpc('driver_cancel_ride', params: {
+      'p_ride_id': rideId,
+      'p_reason': reason,
+    });
+  }
+
   /// Search rides with optional filters.
   Future<List<Ride>> searchRides({
     String? campusId,
     String? originCommune,
     String? direction, // 'to_campus' | 'from_campus'
     DateTime? date,
+    int limit = 50,
   }) async {
     var query = _client
         .from('rides')
@@ -40,7 +51,7 @@ class RideService {
           *,
           users_profile!driver_id(full_name),
           campuses!campus_id(name),
-          universities!university_id(name)
+          universities!university_id(name, code)
         ''')
         .eq('status', 'active')
         .gt('seats_available', 0);
@@ -57,7 +68,7 @@ class RideService {
           .lt('departure_at', end.toIso8601String());
     }
 
-    final rows = await query.order('departure_at');
+    final rows = await query.order('departure_at').limit(limit);
 
     return rows.map((row) {
       // flatten joined fields
@@ -66,6 +77,7 @@ class RideService {
           (row['users_profile'] as Map?)?['full_name'];
       flat['campus_name'] = (row['campuses'] as Map?)?['name'];
       flat['university_name'] = (row['universities'] as Map?)?['name'];
+      flat['university_code'] = (row['universities'] as Map?)?['code'];
       return Ride.fromJson(flat);
     }).toList();
   }
@@ -73,21 +85,42 @@ class RideService {
   Future<Ride?> getRideById(String rideId) async {
     final data = await _client
         .from('rides')
-        .select()
+        .select('''
+          *,
+          users_profile!driver_id(full_name),
+          campuses!campus_id(name),
+          universities!university_id(name, code)
+        ''')
         .eq('id', rideId)
         .maybeSingle();
     if (data == null) return null;
-    return Ride.fromJson(data);
+    final flat = Map<String, dynamic>.from(data);
+    flat['driver_name'] = (data['users_profile'] as Map?)?['full_name'];
+    flat['campus_name'] = (data['campuses'] as Map?)?['name'];
+    flat['university_name'] = (data['universities'] as Map?)?['name'];
+    flat['university_code'] = (data['universities'] as Map?)?['code'];
+    return Ride.fromJson(flat);
   }
 
   /// Returns all rides published by the current driver.
-  Future<List<Ride>> getMyRides() async {
+  Future<List<Ride>> getMyRides({int limit = 80}) async {
     final uid = _client.auth.currentUser!.id;
     final rows = await _client
         .from('rides')
-        .select()
+        .select('''
+          *,
+          campuses!campus_id(name),
+          universities!university_id(name, code)
+        ''')
         .eq('driver_id', uid)
-        .order('departure_at', ascending: false);
-    return rows.map(Ride.fromJson).toList();
+        .order('departure_at', ascending: false)
+        .limit(limit);
+    return rows.map((row) {
+      final flat = Map<String, dynamic>.from(row);
+      flat['campus_name'] = (row['campuses'] as Map?)?['name'];
+      flat['university_name'] = (row['universities'] as Map?)?['name'];
+      flat['university_code'] = (row['universities'] as Map?)?['code'];
+      return Ride.fromJson(flat);
+    }).toList();
   }
 }

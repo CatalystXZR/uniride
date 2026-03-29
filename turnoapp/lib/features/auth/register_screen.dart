@@ -14,8 +14,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/supabase_client.dart';
+import '../../core/constants.dart';
+import '../../core/error_mapper.dart';
 import '../../services/auth_service.dart';
+import '../../services/profile_service.dart';
+import '../../services/reference_data_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/loading_overlay.dart';
 
@@ -31,8 +34,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _vehicleBrandController = TextEditingController();
+  final _vehicleModelController = TextEditingController();
+  final _vehicleVersionController = TextEditingController();
+  final _vehicleDoorsController = TextEditingController();
+  final _vehicleBodyTypeController = TextEditingController();
+  final _vehiclePlateController = TextEditingController();
   bool _loading = false;
   bool _obscure = true;
+  bool _acceptedTerms = false;
+  bool _hasValidLicense = false;
+  bool _registerAsDriver = false;
 
   // Universities loaded from DB so we work with real UUIDs
   List<Map<String, dynamic>> _universities = [];
@@ -41,6 +53,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _universitiesError;
 
   final _auth = AuthService();
+  final _profileService = ProfileService();
+  final _referenceDataService = ReferenceDataService();
 
   @override
   void initState() {
@@ -56,22 +70,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
     }
     try {
-      final rows = await SupabaseConfig.client
-          .from('universities')
-          .select('id, name')
-          .order('name');
+      final rows = await _referenceDataService.getUniversities();
       if (mounted) {
         setState(() {
-          _universities = List<Map<String, dynamic>>.from(rows);
+          _universities = rows;
+          _universitiesError = _referenceDataService.lastCallUsedFallback
+              ? 'No se pudo cargar desde Supabase. Se usan datos de referencia locales.'
+              : null;
           _loadingUniversities = false;
         });
       }
     } catch (e) {
-      debugPrint('[RegisterScreen] _loadUniversities error: $e');
       if (mounted) {
         setState(() {
           _loadingUniversities = false;
-          _universitiesError = 'No se pudo cargar la lista de universidades';
+          _universities = [];
+          _universitiesError = AppErrorMapper.toMessage(
+            e,
+            fallback: 'No se pudo cargar la lista de universidades.',
+          );
         });
       }
     }
@@ -82,6 +99,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _vehicleBrandController.dispose();
+    _vehicleModelController.dispose();
+    _vehicleVersionController.dispose();
+    _vehicleDoorsController.dispose();
+    _vehicleBodyTypeController.dispose();
+    _vehiclePlateController.dispose();
     super.dispose();
   }
 
@@ -89,29 +112,85 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await _auth.signUp(
+      final authResponse = await _auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         fullName: _nameController.text.trim(),
+        acceptedTerms: _acceptedTerms,
+        termsVersion: AppConstants.termsVersion,
+        hasValidLicense: _hasValidLicense,
+        roleMode: _registerAsDriver ? 'driver' : 'passenger',
+        vehicleBrand:
+            _registerAsDriver ? _vehicleBrandController.text.trim() : null,
+        vehicleModel:
+            _registerAsDriver ? _vehicleModelController.text.trim() : null,
+        vehicleVersion:
+            _registerAsDriver ? _vehicleVersionController.text.trim() : null,
+        vehicleDoors: _registerAsDriver
+            ? int.tryParse(_vehicleDoorsController.text.trim())
+            : null,
+        vehicleBodyType:
+            _registerAsDriver ? _vehicleBodyTypeController.text.trim() : null,
+        vehiclePlate:
+            _registerAsDriver ? _vehiclePlateController.text.trim() : null,
       );
-      // After sign-up: upsert profile row with university_id
-      final uid = SupabaseConfig.client.auth.currentUser?.id;
-      if (uid != null) {
-        await SupabaseConfig.client.from('users_profile').upsert({
-          'id': uid,
-          'full_name': _nameController.text.trim(),
-          if (_selectedUniversityId != null)
-            'university_id': _selectedUniversityId,
-        });
-        await SupabaseConfig.client.from('wallets').upsert({
-          'user_id': uid,
-          'balance_available': 0,
-          'balance_held': 0,
-        });
+
+      final uid = _auth.currentUserId;
+
+      // Best-effort profile completion: account creation should not fail here.
+      if (uid != null && _selectedUniversityId != null) {
+        try {
+          await _profileService.saveBasicProfile(
+            userId: uid,
+            fullName: _nameController.text.trim(),
+            universityId: _selectedUniversityId,
+            acceptedTerms: _acceptedTerms,
+            termsVersion: AppConstants.termsVersion,
+            hasValidLicense: _hasValidLicense,
+            roleMode: _registerAsDriver ? 'driver' : 'passenger',
+            vehicleBrand:
+                _registerAsDriver ? _vehicleBrandController.text.trim() : null,
+            vehicleModel:
+                _registerAsDriver ? _vehicleModelController.text.trim() : null,
+            vehicleVersion: _registerAsDriver
+                ? _vehicleVersionController.text.trim()
+                : null,
+            vehicleDoors: _registerAsDriver
+                ? int.tryParse(_vehicleDoorsController.text.trim())
+                : null,
+            vehicleBodyType: _registerAsDriver
+                ? _vehicleBodyTypeController.text.trim()
+                : null,
+            vehiclePlate:
+                _registerAsDriver ? _vehiclePlateController.text.trim() : null,
+          );
+        } catch (_) {
+          // Ignore: trigger already creates base profile/wallet rows.
+        }
+      }
+
+      if (!mounted) return;
+
+      if (authResponse.session == null) {
+        AppSnackbar.show(
+          context,
+          'Cuenta creada. Revisa tu correo para confirmar y luego inicia sesion.',
+        );
+        context.go('/login');
+      } else {
+        AppSnackbar.show(context, 'Cuenta creada correctamente');
+        context.go('/home');
       }
     } catch (e) {
       if (mounted) {
-        AppSnackbar.show(context, e.toString(), isError: true);
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos crear tu cuenta. Intenta nuevamente.',
+          ),
+          isError: true,
+        );
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -124,104 +203,365 @@ class _RegisterScreenState extends State<RegisterScreen> {
       isLoading: _loading,
       child: Scaffold(
         appBar: AppBar(title: const Text('Crear cuenta')),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextFormField(
-                    controller: _nameController,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre completo',
-                      prefixIcon: Icon(Icons.person_outlined),
-                    ),
-                    validator: (v) =>
-                        v != null && v.trim().length > 2 ? null : 'Requerido',
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Correo universitario',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                    validator: (v) =>
-                        v != null && v.contains('@') ? null : 'Correo inválido',
-                  ),
-                  const SizedBox(height: 16),
-                  _loadingUniversities
-                      ? const Center(child: CircularProgressIndicator())
-                      : _universitiesError != null
-                          ? Row(
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFEAF2F7), Color(0xFFF7FAFC)],
+            ),
+          ),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Bienvenido a TurnoApp',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Crea tu cuenta para publicar o reservar turnos.',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: const Color(0xFF5F6E7C)),
+                          ),
+                          const SizedBox(height: 18),
+                          TextFormField(
+                            controller: _nameController,
+                            textCapitalization: TextCapitalization.words,
+                            textInputAction: TextInputAction.next,
+                            decoration: const InputDecoration(
+                              labelText: 'Nombre completo',
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
+                            validator: (v) => v != null && v.trim().length > 2
+                                ? null
+                                : 'Requerido',
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            decoration: const InputDecoration(
+                              labelText: 'Correo universitario',
+                              prefixIcon: Icon(Icons.email_outlined),
+                            ),
+                            validator: (v) => v != null && v.contains('@')
+                                ? null
+                                : 'Correo invalido',
+                          ),
+                          const SizedBox(height: 14),
+                          _loadingUniversities
+                              ? const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8),
+                                  child: Center(
+                                      child: CircularProgressIndicator()),
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (_universitiesError != null) ...[
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: const Color(0xFFE6C5CB),
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          color: const Color(0xFFFDF4F6),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.info_outline,
+                                              color: Color(0xFF8A2F43),
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                _universitiesError!,
+                                                style: const TextStyle(
+                                                  color: Color(0xFF8A2F43),
+                                                ),
+                                              ),
+                                            ),
+                                            TextButton(
+                                              onPressed: _loadUniversities,
+                                              child: const Text('Reintentar'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                    ],
+                                    if (_universities.isEmpty)
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: const Color(0xFFE6C5CB),
+                                          ),
+                                          color: const Color(0xFFFDF4F6),
+                                        ),
+                                        child: const Text(
+                                          'No hay universidades disponibles. Revisa tu conexion o permisos en Supabase (migraciones 06 y 07).',
+                                          style: TextStyle(
+                                              color: Color(0xFF8A2F43)),
+                                        ),
+                                      )
+                                    else
+                                      DropdownButtonFormField<String>(
+                                        value: _selectedUniversityId,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Universidad',
+                                          prefixIcon:
+                                              Icon(Icons.school_outlined),
+                                        ),
+                                        items: _universities
+                                            .map(
+                                              (u) => DropdownMenuItem<String>(
+                                                value: u['id'] as String,
+                                                child:
+                                                    Text(u['name'] as String),
+                                              ),
+                                            )
+                                            .toList(),
+                                        onChanged: (v) => setState(
+                                            () => _selectedUniversityId = v),
+                                        validator: (v) {
+                                          if (_universities.isEmpty)
+                                            return null;
+                                          return v != null
+                                              ? null
+                                              : 'Selecciona tu universidad';
+                                        },
+                                      ),
+                                  ],
+                                ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: _obscure,
+                            onFieldSubmitted: (_) => _submit(),
+                            decoration: InputDecoration(
+                              labelText: 'Contrasena',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscure
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                                onPressed: () =>
+                                    setState(() => _obscure = !_obscure),
+                              ),
+                            ),
+                            validator: (v) => v != null && v.length >= 6
+                                ? null
+                                : 'Minimo 6 caracteres',
+                          ),
+                          const SizedBox(height: 10),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title:
+                                const Text('Quiero registrarme como conductor'),
+                            subtitle: const Text(
+                              'Si lo activas, debes ingresar datos del vehiculo.',
+                            ),
+                            value: _registerAsDriver,
+                            onChanged: (v) =>
+                                setState(() => _registerAsDriver = v),
+                          ),
+                          if (_registerAsDriver) ...[
+                            const SizedBox(height: 10),
+                            Card(
+                              color: const Color(0xFFF8FBFD),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  children: [
+                                    TextFormField(
+                                      controller: _vehicleBrandController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Marca',
+                                        prefixIcon:
+                                            Icon(Icons.directions_car_outlined),
+                                      ),
+                                      validator: (v) => _registerAsDriver
+                                          ? ((v?.trim().isNotEmpty ?? false)
+                                              ? null
+                                              : 'Marca requerida')
+                                          : null,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    TextFormField(
+                                      controller: _vehicleModelController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Modelo',
+                                        prefixIcon:
+                                            Icon(Icons.directions_car_outlined),
+                                      ),
+                                      validator: (v) => _registerAsDriver
+                                          ? ((v?.trim().isNotEmpty ?? false)
+                                              ? null
+                                              : 'Modelo requerido')
+                                          : null,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    TextFormField(
+                                      controller: _vehicleVersionController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Version',
+                                        prefixIcon: Icon(Icons.tune_outlined),
+                                      ),
+                                      validator: (v) => _registerAsDriver
+                                          ? ((v?.trim().isNotEmpty ?? false)
+                                              ? null
+                                              : 'Version requerida')
+                                          : null,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    TextFormField(
+                                      controller: _vehicleDoorsController,
+                                      keyboardType: TextInputType.number,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Cantidad de puertas',
+                                        prefixIcon: Icon(
+                                            Icons.door_front_door_outlined),
+                                      ),
+                                      validator: (v) {
+                                        if (!_registerAsDriver) return null;
+                                        final n = int.tryParse(v?.trim() ?? '');
+                                        if (n == null)
+                                          return 'Puertas requeridas';
+                                        if (n < 2 || n > 6)
+                                          return 'Entre 2 y 6 puertas';
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 10),
+                                    TextFormField(
+                                      controller: _vehicleBodyTypeController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Carroceria',
+                                        prefixIcon:
+                                            Icon(Icons.view_in_ar_outlined),
+                                      ),
+                                      validator: (v) => _registerAsDriver
+                                          ? ((v?.trim().isNotEmpty ?? false)
+                                              ? null
+                                              : 'Carroceria requerida')
+                                          : null,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    TextFormField(
+                                      controller: _vehiclePlateController,
+                                      textCapitalization:
+                                          TextCapitalization.characters,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Patente',
+                                        prefixIcon: Icon(
+                                            Icons.confirmation_number_outlined),
+                                      ),
+                                      validator: (v) => _registerAsDriver
+                                          ? ((v?.trim().isNotEmpty ?? false)
+                                              ? null
+                                              : 'Patente requerida')
+                                          : null,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border:
+                                  Border.all(color: const Color(0xFFD9E3EB)),
+                              color: const Color(0xFFF8FBFD),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.error_outline,
-                                    color: Colors.red, size: 20),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _universitiesError!,
-                                    style: const TextStyle(color: Colors.red),
+                                CheckboxListTile(
+                                  value: _acceptedTerms,
+                                  contentPadding: EdgeInsets.zero,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  title: const Text(
+                                    'Acepto terminos y condiciones, politica de tolerancia cero y reglas de strikes.',
+                                    style: TextStyle(fontSize: 13),
+                                  ),
+                                  onChanged: (v) => setState(
+                                      () => _acceptedTerms = v ?? false),
+                                ),
+                                const SizedBox(height: 2),
+                                CheckboxListTile(
+                                  value: _hasValidLicense,
+                                  contentPadding: EdgeInsets.zero,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  title: const Text(
+                                    'Declaro licencia de conducir vigente para activar modo conductor.',
+                                    style: TextStyle(fontSize: 13),
+                                  ),
+                                  onChanged: (v) => setState(
+                                      () => _hasValidLicense = v ?? false),
+                                ),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: TextButton(
+                                    onPressed: () => context.push('/terms'),
+                                    child: const Text(
+                                        'Leer terminos y condiciones'),
                                   ),
                                 ),
-                                TextButton(
-                                  onPressed: _loadUniversities,
-                                  child: const Text('Reintentar'),
-                                ),
                               ],
-                            )
-                          : DropdownButtonFormField<String>(
-                          value: _selectedUniversityId,
-                          decoration: const InputDecoration(
-                            labelText: 'Universidad',
-                            prefixIcon: Icon(Icons.school_outlined),
+                            ),
                           ),
-                          items: _universities
-                              .map((u) => DropdownMenuItem<String>(
-                                    value: u['id'] as String,
-                                    child: Text(u['name'] as String),
-                                  ))
-                              .toList(),
-                          onChanged: (v) =>
-                              setState(() => _selectedUniversityId = v),
-                          validator: (v) =>
-                              v != null ? null : 'Selecciona tu universidad',
-                        ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscure,
-                    decoration: InputDecoration(
-                      labelText: 'Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outlined),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscure
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                        ),
-                        onPressed: () =>
-                            setState(() => _obscure = !_obscure),
+                          const SizedBox(height: 18),
+                          ElevatedButton(
+                            onPressed: (_loadingUniversities ||
+                                    _universities.isEmpty ||
+                                    !_acceptedTerms)
+                                ? null
+                                : _submit,
+                            child: const Text('Crear cuenta'),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: () => context.pop(),
+                            child:
+                                const Text('Ya tienes cuenta? Inicia sesion'),
+                          ),
+                        ],
                       ),
                     ),
-                    validator: (v) =>
-                        v != null && v.length >= 6 ? null : 'Mínimo 6 caracteres',
                   ),
-                  const SizedBox(height: 28),
-                  ElevatedButton(
-                    onPressed: _submit,
-                    child: const Text('Crear cuenta'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => context.pop(),
-                    child: const Text('¿Ya tienes cuenta? Inicia sesión'),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

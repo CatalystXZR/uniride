@@ -19,6 +19,14 @@ import '../models/transaction.dart';
 class WalletService {
   final _client = SupabaseConfig.client;
 
+  Future<void> ensureWalletExists({required String userId}) async {
+    await _client.from('wallets').upsert({
+      'user_id': userId,
+      'balance_available': 0,
+      'balance_held': 0,
+    });
+  }
+
   Future<Wallet?> getWallet() async {
     final uid = _client.auth.currentUser?.id;
     if (uid == null) return null;

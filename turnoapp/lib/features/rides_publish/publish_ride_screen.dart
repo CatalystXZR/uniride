@@ -14,14 +14,18 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../core/constants.dart';
-import '../../core/supabase_client.dart';
+import '../../core/error_mapper.dart';
+import '../../models/user_profile.dart';
 import '../../models/ride.dart';
 import '../../models/enums.dart';
+import '../../services/auth_service.dart';
+import '../../services/profile_service.dart';
+import '../../services/reference_data_service.dart';
 import '../../services/ride_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/loading_overlay.dart';
-import 'package:intl/intl.dart';
 
 class PublishRideScreen extends StatefulWidget {
   const PublishRideScreen({super.key});
@@ -33,10 +37,16 @@ class PublishRideScreen extends StatefulWidget {
 class _PublishRideScreenState extends State<PublishRideScreen> {
   final _formKey = GlobalKey<FormState>();
   final _rideService = RideService();
+  final _authService = AuthService();
+  final _profileService = ProfileService();
+  final _referenceDataService = ReferenceDataService();
 
   String? _selectedCommune;
   String? _selectedUniversityId;
+  String? _selectedUniversityCode;
   String? _selectedCampusId;
+  final _meetingPointController = TextEditingController();
+  bool _isRadial = false;
   RideDirection _direction = RideDirection.toCampus;
   DateTime? _departureAt;
   int _seats = 3;
@@ -45,32 +55,93 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
   // Fetched from DB
   List<Map<String, dynamic>> _universities = [];
   List<Map<String, dynamic>> _campuses = [];
+  bool _loadingUniversities = true;
+  bool _loadingCampuses = false;
+  String? _referenceError;
+  UserProfile? _profile;
+
+  @override
+  void dispose() {
+    _meetingPointController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
+    _loadProfile();
     _loadUniversities();
   }
 
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await _profileService.getProfile();
+      if (mounted) {
+        setState(() => _profile = profile);
+      }
+    } catch (_) {
+      // Non-blocking; checked on submit too.
+    }
+  }
+
   Future<void> _loadUniversities() async {
-    final rows = await SupabaseConfig.client
-        .from('universities')
-        .select()
-        .order('name');
-    if (mounted) setState(() => _universities = List<Map<String, dynamic>>.from(rows));
+    if (mounted) {
+      setState(() {
+        _loadingUniversities = true;
+        _referenceError = null;
+      });
+    }
+
+    try {
+      final rows = await _referenceDataService.getUniversities();
+      if (mounted) {
+        setState(() {
+          _universities = rows;
+          _referenceError = _referenceDataService.lastCallUsedFallback
+              ? 'No se pudo cargar desde Supabase. Se usan datos de referencia locales.'
+              : null;
+          _loadingUniversities = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingUniversities = false;
+          _referenceError =
+              AppErrorMapper.toMessage(e, fallback: 'No pudimos cargar universidades.');
+        });
+      }
+    }
   }
 
   Future<void> _loadCampuses(String universityId) async {
-    final rows = await SupabaseConfig.client
-        .from('campuses')
-        .select()
-        .eq('university_id', universityId)
-        .order('name');
     if (mounted) {
       setState(() {
-        _campuses = List<Map<String, dynamic>>.from(rows);
-        _selectedCampusId = null;
+        _loadingCampuses = true;
+        _referenceError = null;
       });
+    }
+    try {
+      final rows = await _referenceDataService.getCampusesByUniversity(universityId);
+      if (mounted) {
+        setState(() {
+          _campuses = rows;
+          if (_referenceDataService.lastCallUsedFallback) {
+            _referenceError =
+                'No se pudo cargar desde Supabase. Se usan datos de referencia locales.';
+          }
+          _selectedCampusId = null;
+          _loadingCampuses = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingCampuses = false;
+          _referenceError =
+              AppErrorMapper.toMessage(e, fallback: 'No pudimos cargar campus.');
+        });
+      }
     }
   }
 
@@ -111,19 +182,49 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
       AppSnackbar.show(context, 'Selecciona universidad y campus', isError: true);
       return;
     }
+    if (_meetingPointController.text.trim().length < 4) {
+      AppSnackbar.show(context, 'Define un punto de encuentro claro.', isError: true);
+      return;
+    }
 
     setState(() => _loading = true);
     try {
-      final uid = SupabaseConfig.client.auth.currentUser!.id;
+      if (!(_profile?.acceptedTerms ?? false)) {
+        throw Exception('terms_not_accepted');
+      }
+      if (!(_profile?.hasValidLicense ?? false)) {
+        throw Exception('driver_license_required');
+      }
+
+      final uid = _authService.currentUserId;
+      if (uid == null) {
+        throw Exception('unauthorized');
+      }
+
+      final uni = await _referenceDataService.getUniversityById(_selectedUniversityId!);
+      final universityCode =
+          _selectedUniversityCode ?? (uni?['code'] as String?) ?? 'UDD';
+      final seatPrice = AppConstants.seatPriceForUniversityCode(universityCode);
+      final fee = AppConstants.platformFeeForAmount(
+        seatPrice,
+        isRadial: _isRadial,
+      );
+      final net = seatPrice - fee;
+
       final ride = Ride(
         id: '',
         driverId: uid,
         universityId: _selectedUniversityId!,
+        universityCode: universityCode,
         campusId: _selectedCampusId!,
         originCommune: _selectedCommune!,
+        meetingPoint: _meetingPointController.text.trim(),
+        isRadial: _isRadial,
         direction: _direction,
         departureAt: _departureAt!,
-        seatPrice: AppConstants.seatPriceCLP,
+        seatPrice: seatPrice,
+        platformFee: fee,
+        driverNetAmount: net,
         seatsTotal: _seats,
         seatsAvailable: _seats,
         status: 'active',
@@ -135,7 +236,16 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
         context.pop();
       }
     } catch (e) {
-      if (mounted) AppSnackbar.show(context, e.toString(), isError: true);
+      if (mounted) {
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos publicar el turno. Intenta nuevamente.',
+          ),
+          isError: true,
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -146,6 +256,16 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
     final departureFmt = _departureAt != null
         ? DateFormat('EEE d MMM, HH:mm', 'es').format(_departureAt!)
         : 'Seleccionar';
+    final directionLabel = _direction == RideDirection.toCampus
+        ? 'Hacia campus'
+        : 'Desde campus';
+    final seatPricePreview =
+        AppConstants.seatPriceForUniversityCode(_selectedUniversityCode);
+    final feePreview = AppConstants.platformFeeForAmount(
+      seatPricePreview,
+      isRadial: _isRadial,
+    );
+    final netPreview = seatPricePreview - feePreview;
 
     return LoadingOverlay(
       isLoading: _loading,
@@ -154,140 +274,311 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
         body: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 108),
             children: [
-              // Direction toggle
-              const Text('Dirección del viaje',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              SegmentedButton<RideDirection>(
-                segments: const [
-                  ButtonSegment(
-                    value: RideDirection.toCampus,
-                    label: Text('Hacia campus'),
-                    icon: Icon(Icons.school_outlined),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE4EFF5), Color(0xFFF4F9FC)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  ButtonSegment(
-                    value: RideDirection.fromCampus,
-                    label: Text('Desde campus'),
-                    icon: Icon(Icons.home_outlined),
-                  ),
-                ],
-                selected: {_direction},
-                onSelectionChanged: (s) =>
-                    setState(() => _direction = s.first),
-              ),
-              const SizedBox(height: 20),
-
-              // Commune
-              DropdownButtonFormField<String>(
-                value: _selectedCommune,
-                decoration: const InputDecoration(
-                  labelText: 'Comuna de origen',
-                  prefixIcon: Icon(Icons.location_on_outlined),
                 ),
-                items: AppConstants.allowedCommunes
-                    .map((c) =>
-                        DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedCommune = v),
-                validator: (v) => v != null ? null : 'Requerido',
+                child: Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E5B7A),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        _direction == RideDirection.toCampus
+                            ? Icons.north_east_rounded
+                            : Icons.south_west_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nuevo turno',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$directionLabel - ${_seats.toString()} cupos',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: const Color(0xFF536474)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
-
-              // University
-              DropdownButtonFormField<String>(
-                value: _selectedUniversityId,
-                decoration: const InputDecoration(
-                  labelText: 'Universidad',
-                  prefixIcon: Icon(Icons.school_outlined),
-                ),
-                items: _universities
-                    .map((u) => DropdownMenuItem(
-                          value: u['id'] as String,
-                          child: Text(u['name'] as String),
-                        ))
-                    .toList(),
-                onChanged: (v) {
-                  setState(() {
-                    _selectedUniversityId = v;
-                    _selectedCampusId = null;
-                  });
-                  if (v != null) _loadCampuses(v);
-                },
-                validator: (v) => v != null ? null : 'Requerido',
-              ),
-              const SizedBox(height: 16),
-
-              // Campus
-              DropdownButtonFormField<String>(
-                value: _selectedCampusId,
-                decoration: const InputDecoration(
-                  labelText: 'Campus',
-                  prefixIcon: Icon(Icons.place_outlined),
-                ),
-                items: _campuses
-                    .map((c) => DropdownMenuItem(
-                          value: c['id'] as String,
-                          child: Text(c['name'] as String),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedCampusId = v),
-                validator: (v) => v != null ? null : 'Requerido',
-              ),
-              const SizedBox(height: 16),
-
-              // Date & Time
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.access_time),
-                title: const Text('Fecha y hora de salida'),
-                subtitle: Text(departureFmt),
-                trailing: TextButton(
-                  onPressed: _pickDateTime,
-                  child: const Text('Cambiar'),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: const BorderSide(color: Color(0xFFDADCE0)),
-                ),
-                tileColor: Colors.white,
-              ),
-              const SizedBox(height: 16),
-
-              // Seats
-              Row(
-                children: [
-                  const Text('Cupos disponibles',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  const Spacer(),
-                  IconButton(
-                    onPressed:
-                        _seats > 1 ? () => setState(() => _seats--) : null,
-                    icon: const Icon(Icons.remove_circle_outline),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Direccion del viaje',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 10),
+                      SegmentedButton<RideDirection>(
+                        segments: const [
+                          ButtonSegment(
+                            value: RideDirection.toCampus,
+                            label: Text('Hacia campus'),
+                            icon: Icon(Icons.school_outlined),
+                          ),
+                          ButtonSegment(
+                            value: RideDirection.fromCampus,
+                            label: Text('Desde campus'),
+                            icon: Icon(Icons.home_outlined),
+                          ),
+                        ],
+                        selected: {_direction},
+                        onSelectionChanged: (s) => setState(() => _direction = s.first),
+                      ),
+                    ],
                   ),
-                  Text('$_seats',
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.w700)),
-                  IconButton(
-                    onPressed:
-                        _seats < 6 ? () => setState(() => _seats++) : null,
-                    icon: const Icon(Icons.add_circle_outline),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      DropdownButtonFormField<String>(
+                        value: _selectedCommune,
+                        decoration: const InputDecoration(
+                          labelText: 'Comuna de origen',
+                          prefixIcon: Icon(Icons.location_on_outlined),
+                        ),
+                        items: AppConstants.allowedCommunes
+                            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                            .toList(),
+                        onChanged: (v) => setState(() => _selectedCommune = v),
+                        validator: (v) => v != null ? null : 'Requerido',
+                      ),
+                      const SizedBox(height: 12),
+                      _loadingUniversities
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: LinearProgressIndicator(minHeight: 3),
+                            )
+                          : DropdownButtonFormField<String>(
+                              value: _selectedUniversityId,
+                              decoration: const InputDecoration(
+                                labelText: 'Universidad',
+                                prefixIcon: Icon(Icons.school_outlined),
+                              ),
+                              items: _universities
+                                  .map(
+                                    (u) => DropdownMenuItem<String>(
+                                      value: u['id'] as String,
+                                      child: Text(u['name'] as String),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) {
+                                setState(() {
+                                  _selectedUniversityId = v;
+                                  final selected = _universities
+                                      .where((u) => u['id'] == v)
+                                      .cast<Map<String, dynamic>>()
+                                      .toList();
+                                  _selectedUniversityCode = selected.isNotEmpty
+                                      ? selected.first['code'] as String?
+                                      : null;
+                                  _selectedCampusId = null;
+                                  _campuses = [];
+                                });
+                                if (v != null) _loadCampuses(v);
+                              },
+                              validator: (v) => v != null ? null : 'Requerido',
+                            ),
+                      const SizedBox(height: 12),
+                      _loadingCampuses
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: LinearProgressIndicator(minHeight: 3),
+                            )
+                          : DropdownButtonFormField<String>(
+                              value: _selectedCampusId,
+                              decoration: const InputDecoration(
+                                labelText: 'Campus',
+                                prefixIcon: Icon(Icons.place_outlined),
+                              ),
+                              items: _campuses
+                                  .map(
+                                    (c) => DropdownMenuItem<String>(
+                                      value: c['id'] as String,
+                                      child: Text(c['name'] as String),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) => setState(() => _selectedCampusId = v),
+                              validator: (v) => v != null ? null : 'Requerido',
+                            ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _meetingPointController,
+                        decoration: const InputDecoration(
+                          labelText: 'Punto de encuentro',
+                          prefixIcon: Icon(Icons.pin_drop_outlined),
+                        ),
+                        validator: (v) => (v?.trim().length ?? 0) >= 4
+                            ? null
+                            : 'Define un punto de encuentro',
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Ruta radial (tarifa 15,25%)'),
+                        subtitle: const Text(
+                          'Si aplica recorrido radial, sube ligeramente la comision.',
+                        ),
+                        value: _isRadial,
+                        onChanged: (v) => setState(() => _isRadial = v),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Precio por asiento: \$${AppConstants.seatPriceCLP}',
-                style:
-                    const TextStyle(color: Colors.grey, fontSize: 13),
-              ),
-              const SizedBox(height: 28),
-              ElevatedButton(
-                onPressed: _submit,
-                child: const Text('Publicar turno'),
+              if (_referenceError != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFDF4F6),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFEACCD3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Color(0xFF8A2F43)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _referenceError!,
+                          style: const TextStyle(color: Color(0xFF8A2F43)),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _loadUniversities,
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.schedule),
+                        title: const Text('Fecha y hora de salida'),
+                        subtitle: Text(departureFmt),
+                        trailing: TextButton(
+                          onPressed: _pickDateTime,
+                          child: const Text('Cambiar'),
+                        ),
+                      ),
+                      const Divider(height: 18),
+                      Row(
+                        children: [
+                          Text(
+                            'Cupos disponibles',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: _seats > 1 ? () => setState(() => _seats--) : null,
+                            icon: const Icon(Icons.remove_circle_outline),
+                          ),
+                          Text(
+                            '$_seats',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          IconButton(
+                            onPressed: _seats < 6 ? () => setState(() => _seats++) : null,
+                            icon: const Icon(Icons.add_circle_outline),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F7FA),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Precio por asiento: \$$seatPricePreview',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1E5B7A),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Comision: \$$feePreview · Neto conductor: \$$netPreview',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF536474),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
+          ),
+        ),
+        bottomNavigationBar: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: ElevatedButton.icon(
+            onPressed: _loading ? null : _submit,
+            icon: const Icon(Icons.publish_outlined),
+            label: const Text('Publicar turno'),
           ),
         ),
       ),

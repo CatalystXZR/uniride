@@ -20,12 +20,23 @@ class AppSnackbar {
     String message, {
     bool isError = false,
   }) {
+    final color = isError
+        ? const Color(0xFF8A2F43)
+        : const Color(0xFF1A4D63);
+    final icon = isError ? Icons.error_outline : Icons.check_circle_outline;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.redAccent : Colors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        duration: const Duration(seconds: 3),
+        backgroundColor: color,
       ),
     );
   }
