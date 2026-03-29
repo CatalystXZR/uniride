@@ -1,0 +1,45 @@
+name: Deploy TurnoApp to Vercel
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "turnoapp/**"
+      - ".github/workflows/vercel-deploy.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Get Flutter dependencies
+        working-directory: turnoapp
+        run: flutter pub get
+
+      - name: Build Flutter web
+        working-directory: turnoapp
+        run: |
+          flutter build web --release \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Copy vercel config to build
+        run: cp turnoapp/vercel.json turnoapp/build/web/vercel.json
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: "--prod"
+          working-directory: ./turnoapp/build/web
