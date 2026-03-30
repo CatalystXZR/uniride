@@ -2,9 +2,9 @@
  *
  * Project: TurnoApp
  *
- * Original Concept: Agustín Puelma, Cristobal Cordova, Carlos Ibarra
+ * Original Concept: Agustin Puelma, Cristobal Cordova, Carlos Ibarra
  *
- * Software Architecture & Code: Matías Toledo (catalystxzr)
+ * Software Architecture & Code: Matias Toledo (catalystxzr)
  *
  * Description: Production-grade implementation for UDD carpooling system.
  *
@@ -13,80 +13,52 @@
  */
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+
+import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
 import '../../models/enums.dart';
 import '../../models/user_profile.dart';
-import '../../models/wallet.dart';
-import '../../services/auth_service.dart';
-import '../../services/profile_service.dart';
-import '../../services/wallet_service.dart';
+import '../../providers/home_provider.dart';
+import '../../providers/service_providers.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/loading_overlay.dart';
-import '../../core/constants.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final _profileService = ProfileService();
-  final _walletService = WalletService();
-  final _auth = AuthService();
-
-  UserProfile? _profile;
-  Wallet? _wallet;
-  bool _loading = true;
-  bool _switchingRole = false;
-
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    Future.microtask(() => ref.read(homeProvider.notifier).load());
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final results = await Future.wait([
-        _profileService.getProfile(),
-        _walletService.getWallet(),
-      ]);
-      if (mounted) {
-        setState(() {
-          _profile = results[0] as UserProfile?;
-          _wallet = results[1] as Wallet?;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _loading = false);
-        AppSnackbar.show(
-          context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos cargar tu inicio. Intenta nuevamente.',
-          ),
-          isError: true,
-        );
-      }
-    }
+    await ref.read(homeProvider.notifier).load();
+    final state = ref.read(homeProvider);
+    if (!mounted || state.errorMessage == null) return;
+    AppSnackbar.show(context, state.errorMessage!, isError: true);
+    ref.read(homeProvider.notifier).clearError();
   }
 
   Future<void> _toggleRole() async {
-    if (_profile == null || _switchingRole) return;
+    final state = ref.read(homeProvider);
+    final profile = state.profile;
+    if (profile == null || state.switchingRole) return;
 
-    final newMode = _profile!.roleMode == RoleMode.driver
+    final newMode = profile.roleMode == RoleMode.driver
         ? RoleMode.passenger
         : RoleMode.driver;
 
     if (newMode == RoleMode.driver) {
-      if (!(_profile?.acceptedTerms ?? false)) {
+      if (!profile.acceptedTerms) {
         if (mounted) {
           AppSnackbar.show(
             context,
@@ -96,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         return;
       }
-      if (!(_profile?.hasValidLicense ?? false)) {
+      if (!profile.hasValidLicense) {
         if (mounted) {
           AppSnackbar.show(
             context,
@@ -106,25 +78,18 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         return;
       }
-      final hasVehicleData =
-          (_profile?.vehicleBrand?.trim().isNotEmpty ?? false) &&
-          (_profile?.vehicleModel?.trim().isNotEmpty ?? false) &&
-          (_profile?.vehicleVersion?.trim().isNotEmpty ?? false) &&
-          ((_profile?.vehicleDoors ?? 0) >= 2) &&
-          ((_profile?.vehicleDoors ?? 0) <= 6) &&
-          (_profile?.vehicleBodyType?.trim().isNotEmpty ?? false) &&
-          (_profile?.vehiclePlate?.trim().isNotEmpty ?? false);
 
+      final hasVehicleData = _hasCompleteDriverVehicleData(profile);
       if (!hasVehicleData) {
-        final completed = await _promptDriverVehicleRequirements();
+        final completed = await _promptDriverVehicleRequirements(profile);
         if (!completed) return;
 
         await _load();
-        if (!mounted || _profile == null) return;
+        final refreshed = ref.read(homeProvider).profile;
+        if (!mounted || refreshed == null) return;
 
-        final readyNow =
-            (_profile?.hasValidLicense ?? false) &&
-            _hasCompleteDriverVehicleData(_profile!);
+        final readyNow = refreshed.hasValidLicense &&
+            _hasCompleteDriverVehicleData(refreshed);
         if (!readyNow) {
           if (mounted) {
             AppSnackbar.show(
@@ -136,11 +101,10 @@ class _HomeScreenState extends State<HomeScreen> {
           return;
         }
       }
-      if ((_profile?.suspendedUntil?.isAfter(DateTime.now()) ?? false)) {
-        final until = DateFormat(
-          'd MMM y',
-          'es',
-        ).format(_profile!.suspendedUntil!);
+
+      if (profile.suspendedUntil?.isAfter(DateTime.now()) ?? false) {
+        final until =
+            DateFormat('d MMM y', 'es').format(profile.suspendedUntil!);
         if (mounted) {
           AppSnackbar.show(
             context,
@@ -152,26 +116,25 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    setState(() => _switchingRole = true);
-
     try {
-      final updated = await _profileService.setRoleMode(newMode);
-      if (mounted) {
-        setState(() => _profile = updated);
-      }
+      await ref.read(homeProvider.notifier).setRoleMode(newMode);
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        newMode == RoleMode.driver
+            ? 'Modo conductor activado'
+            : 'Modo pasajero activado',
+      );
     } catch (e) {
-      if (mounted) {
-        AppSnackbar.show(
-          context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos cambiar tu modo ahora.',
-          ),
-          isError: true,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _switchingRole = false);
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos cambiar tu modo ahora.',
+        ),
+        isError: true,
+      );
     }
   }
 
@@ -185,29 +148,23 @@ class _HomeScreenState extends State<HomeScreen> {
         (profile.vehiclePlate?.trim().isNotEmpty ?? false);
   }
 
-  Future<bool> _promptDriverVehicleRequirements() async {
-    final fullNameController = TextEditingController(
-      text: _profile?.fullName ?? '',
-    );
-    final brandController = TextEditingController(
-      text: _profile?.vehicleBrand ?? '',
-    );
-    final modelController = TextEditingController(
-      text: _profile?.vehicleModel ?? '',
-    );
-    final versionController = TextEditingController(
-      text: _profile?.vehicleVersion ?? '',
-    );
+  Future<bool> _promptDriverVehicleRequirements(UserProfile profile) async {
+    final fullNameController =
+        TextEditingController(text: profile.fullName ?? '');
+    final brandController =
+        TextEditingController(text: profile.vehicleBrand ?? '');
+    final modelController =
+        TextEditingController(text: profile.vehicleModel ?? '');
+    final versionController =
+        TextEditingController(text: profile.vehicleVersion ?? '');
     final doorsController = TextEditingController(
-      text: _profile?.vehicleDoors != null ? '${_profile?.vehicleDoors}' : '',
+      text: profile.vehicleDoors != null ? '${profile.vehicleDoors}' : '',
     );
-    final bodyController = TextEditingController(
-      text: _profile?.vehicleBodyType ?? '',
-    );
-    final plateController = TextEditingController(
-      text: _profile?.vehiclePlate ?? '',
-    );
-    var hasLicense = _profile?.hasValidLicense ?? false;
+    final bodyController =
+        TextEditingController(text: profile.vehicleBodyType ?? '');
+    final plateController =
+        TextEditingController(text: profile.vehiclePlate ?? '');
+    var hasLicense = profile.hasValidLicense;
     final formKey = GlobalKey<FormState>();
     var saving = false;
 
@@ -234,9 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const Text(
                         'Completa datos para modo conductor',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
+                            fontSize: 18, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),
                       const Text(
@@ -246,9 +201,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: fullNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nombre completo',
-                        ),
+                        decoration:
+                            const InputDecoration(labelText: 'Nombre completo'),
                         validator: (v) => (v?.trim().length ?? 0) >= 3
                             ? null
                             : 'Nombre requerido',
@@ -282,8 +236,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         controller: doorsController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
-                          labelText: 'Cantidad de puertas',
-                        ),
+                            labelText: 'Cantidad de puertas'),
                         validator: (v) {
                           final n = int.tryParse(v?.trim() ?? '');
                           if (n == null) return 'Puertas requeridas';
@@ -294,9 +247,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 10),
                       TextFormField(
                         controller: bodyController,
-                        decoration: const InputDecoration(
-                          labelText: 'Carroceria',
-                        ),
+                        decoration:
+                            const InputDecoration(labelText: 'Carroceria'),
                         validator: (v) => (v?.trim().isNotEmpty ?? false)
                             ? null
                             : 'Carroceria requerida',
@@ -337,27 +289,33 @@ class _HomeScreenState extends State<HomeScreen> {
 
                                 setModalState(() => saving = true);
                                 try {
-                                  await _profileService.updateProfileDetails(
-                                    fullName: fullNameController.text.trim(),
-                                    profilePhotoUrl: _profile?.profilePhotoUrl,
-                                    vehicleBrand: brandController.text.trim(),
-                                    vehicleModel: modelController.text.trim(),
-                                    vehicleVersion: versionController.text
-                                        .trim(),
-                                    vehicleDoors: int.parse(
-                                      doorsController.text.trim(),
-                                    ),
-                                    vehicleBodyType: bodyController.text.trim(),
-                                    vehiclePlate: plateController.text
-                                        .trim()
-                                        .toUpperCase()
-                                        .replaceAll(' ', ''),
-                                    vehicleColor: _profile?.vehicleColor,
-                                    emergencyContact:
-                                        _profile?.emergencyContact,
-                                    safetyNotes: _profile?.safetyNotes,
-                                    hasValidLicense: hasLicense,
-                                  );
+                                  await ref
+                                      .read(profileServiceProvider)
+                                      .updateProfileDetails(
+                                        fullName:
+                                            fullNameController.text.trim(),
+                                        profilePhotoUrl:
+                                            profile.profilePhotoUrl,
+                                        vehicleBrand:
+                                            brandController.text.trim(),
+                                        vehicleModel:
+                                            modelController.text.trim(),
+                                        vehicleVersion:
+                                            versionController.text.trim(),
+                                        vehicleDoors: int.parse(
+                                            doorsController.text.trim()),
+                                        vehicleBodyType:
+                                            bodyController.text.trim(),
+                                        vehiclePlate: plateController.text
+                                            .trim()
+                                            .toUpperCase()
+                                            .replaceAll(' ', ''),
+                                        vehicleColor: profile.vehicleColor,
+                                        emergencyContact:
+                                            profile.emergencyContact,
+                                        safetyNotes: profile.safetyNotes,
+                                        hasValidLicense: hasLicense,
+                                      );
 
                                   if (ctx.mounted) {
                                     Navigator.of(ctx).pop(true);
@@ -378,13 +336,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 }
                               },
                         child: Text(
-                          saving ? 'Guardando...' : 'Guardar y continuar',
-                        ),
+                            saving ? 'Guardando...' : 'Guardar y continuar'),
                       ),
                       TextButton(
-                        onPressed: saving
-                            ? null
-                            : () => Navigator.of(ctx).pop(false),
+                        onPressed:
+                            saving ? null : () => Navigator.of(ctx).pop(false),
                         child: const Text('Cancelar'),
                       ),
                     ],
@@ -408,18 +364,21 @@ class _HomeScreenState extends State<HomeScreen> {
     return result == true;
   }
 
-  bool get _isDriver => _profile?.roleMode == RoleMode.driver;
-
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(homeProvider);
+    final profile = state.profile;
+    final wallet = state.wallet;
+    final isDriver = profile?.roleMode == RoleMode.driver;
+
     final balanceStr = NumberFormat.currency(
       locale: 'es_CL',
       symbol: '\$',
       decimalDigits: 0,
-    ).format(_wallet?.balanceAvailable ?? 0);
+    ).format(wallet?.balanceAvailable ?? 0);
 
     return LoadingOverlay(
-      isLoading: _switchingRole,
+      isLoading: state.switchingRole,
       message: 'Actualizando modo...',
       child: Scaffold(
         appBar: AppBar(
@@ -432,12 +391,12 @@ class _HomeScreenState extends State<HomeScreen> {
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () async {
-                await _auth.signOut();
+                await ref.read(authServiceProvider).signOut();
               },
             ),
           ],
         ),
-        body: _loading
+        body: state.loading
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
                 onRefresh: _load,
@@ -445,9 +404,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   children: [
                     _RoleSwitchCard(
-                      isDriver: _isDriver,
-                      name: _profile?.fullName ?? 'Usuario',
-                      photoUrl: _profile?.profilePhotoUrl,
+                      isDriver: isDriver,
+                      name: profile?.fullName ?? 'Usuario',
+                      photoUrl: profile?.profilePhotoUrl,
                       onToggle: _toggleRole,
                     ),
                     const SizedBox(height: 12),
@@ -464,11 +423,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 12),
                     _BalanceCard(
                       balance: balanceStr,
-                      held: _wallet?.balanceHeld ?? 0,
+                      held: wallet?.balanceHeld ?? 0,
                       onTopup: () => context.push('/wallet'),
                     ),
-                    if ((_profile?.strikesCount ?? 0) > 0 ||
-                        (_profile?.suspendedUntil != null)) ...[
+                    if ((profile?.strikesCount ?? 0) > 0 ||
+                        (profile?.suspendedUntil != null)) ...[
                       const SizedBox(height: 12),
                       Card(
                         child: Padding(
@@ -481,10 +440,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 style: TextStyle(fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: 6),
-                              Text('Strikes: ${_profile?.strikesCount ?? 0}/2'),
-                              if (_profile?.suspendedUntil != null)
+                              Text('Strikes: ${profile?.strikesCount ?? 0}/2'),
+                              if (profile?.suspendedUntil != null)
                                 Text(
-                                  'Suspendido hasta: ${DateFormat('d MMM y', 'es').format(_profile!.suspendedUntil!)}',
+                                  'Suspendido hasta: ${DateFormat('d MMM y', 'es').format(profile!.suspendedUntil!)}',
                                   style: const TextStyle(
                                     color: Color(0xFF8A2F43),
                                     fontWeight: FontWeight.w700,
@@ -498,12 +457,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 18),
                     Text(
                       'Acciones principales',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 10),
-                    if (_isDriver) ...[
+                    if (isDriver) ...[
                       _ActionButton(
                         icon: Icons.add_circle_outline,
                         label: 'Publicar turno',
@@ -591,9 +551,8 @@ class _RoleSwitchCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer,
+                  backgroundColor:
+                      Theme.of(context).colorScheme.primaryContainer,
                   backgroundImage: (photoUrl != null && photoUrl!.isNotEmpty)
                       ? NetworkImage(photoUrl!)
                       : null,
@@ -677,7 +636,7 @@ class _RoleSwitchCard extends StatelessWidget {
                   Switch(
                     value: isDriver,
                     onChanged: (_) => onToggle(),
-                    activeColor: const Color(0xFFC4871F),
+                    activeThumbColor: const Color(0xFFC4871F),
                   ),
                   Icon(
                     Icons.drive_eta,
@@ -830,11 +789,8 @@ class _ActionButton extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Colors.white,
-                ),
+                const Icon(Icons.arrow_forward_ios,
+                    size: 16, color: Colors.white),
               ],
             ),
           ),
