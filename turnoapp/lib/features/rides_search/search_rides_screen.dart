@@ -21,6 +21,7 @@ import '../../core/error_mapper.dart';
 import '../../models/enums.dart';
 import '../../providers/search_rides_provider.dart';
 import '../../shared/widgets/app_snackbar.dart';
+import '../../shared/widgets/decorative_background.dart';
 import '../../shared/widgets/turno_card.dart';
 
 class SearchRidesScreen extends ConsumerStatefulWidget {
@@ -30,12 +31,30 @@ class SearchRidesScreen extends ConsumerStatefulWidget {
   ConsumerState<SearchRidesScreen> createState() => _SearchRidesScreenState();
 }
 
-class _SearchRidesScreenState extends ConsumerState<SearchRidesScreen> {
+class _SearchRidesScreenState extends ConsumerState<SearchRidesScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _listController;
+  late final Animation<double> _listAnimation;
+
   @override
   void initState() {
     super.initState();
+    _listController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
+    _listAnimation = CurvedAnimation(
+      parent: _listController,
+      curve: Curves.easeOut,
+    );
     Future.microtask(
         () => ref.read(searchRidesProvider.notifier).loadCampuses());
+  }
+
+  @override
+  void dispose() {
+    _listController.dispose();
+    super.dispose();
   }
 
   Future<void> _search() async {
@@ -77,6 +96,12 @@ class _SearchRidesScreenState extends ConsumerState<SearchRidesScreen> {
         state.selectedCampusId != null ||
         state.selectedDate != null;
 
+    if (!state.loading &&
+        state.results.isNotEmpty &&
+        !_listController.isCompleted) {
+      _listController.forward();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Buscar turnos'),
@@ -88,144 +113,150 @@ class _SearchRidesScreenState extends ConsumerState<SearchRidesScreen> {
             ),
         ],
       ),
-      body: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFD8E2EA)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Filtros rapidos',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _FilterChipDropdown<String>(
-                      label: 'Comuna',
-                      value: state.selectedCommune,
-                      items: AppConstants.allowedCommunes
-                          .map(
-                              (c) => DropdownMenuItem(value: c, child: Text(c)))
-                          .toList(),
-                      onChanged: (v) async {
-                        notifier.setCommune(v);
-                        await _search();
-                      },
-                    ),
-                    _FilterChipDropdown<String>(
-                      label: 'Direccion',
-                      value: state.selectedDirection,
-                      items: const [
-                        DropdownMenuItem(
-                            value: 'to_campus', child: Text('Hacia campus')),
-                        DropdownMenuItem(
-                          value: 'from_campus',
-                          child: Text('Desde campus'),
-                        ),
-                      ],
-                      onChanged: (v) async {
-                        notifier.setDirection(v);
-                        await _search();
-                      },
-                    ),
-                    state.campusesError != null
-                        ? ActionChip(
-                            avatar: const Icon(
-                              Icons.error_outline,
-                              size: 16,
-                              color: Color(0xFF8A2F43),
-                            ),
-                            label: const Text('Reintentar campus'),
-                            onPressed: notifier.loadCampuses,
-                          )
-                        : _FilterChipDropdown<String>(
-                            label: state.loadingCampuses
-                                ? 'Cargando campus...'
-                                : 'Campus',
-                            value: state.selectedCampusId,
-                            items: state.campuses
-                                .map(
-                                  (c) => DropdownMenuItem(
-                                    value: c['id'] as String,
-                                    child: Text(
-                                      '${c['name']} · ${(c['universities'] as Map?)?['name'] ?? ''}',
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: state.loadingCampuses
-                                ? (_) {}
-                                : (v) async {
-                                    notifier.setCampus(v);
-                                    await _search();
-                                  },
-                          ),
-                    ActionChip(
-                      label: Text(
-                        state.selectedDate != null
-                            ? '${state.selectedDate!.day}/${state.selectedDate!.month}'
-                            : 'Fecha',
+      body: DecorativeBackground(
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFD8E2EA)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Filtros rapidos',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _FilterChipDropdown<String>(
+                        label: 'Comuna',
+                        value: state.selectedCommune,
+                        items: AppConstants.allowedCommunes
+                            .map((c) =>
+                                DropdownMenuItem(value: c, child: Text(c)))
+                            .toList(),
+                        onChanged: (v) async {
+                          notifier.setCommune(v);
+                          await _search();
+                        },
                       ),
-                      avatar: const Icon(Icons.calendar_today, size: 16),
-                      onPressed: _pickDate,
-                      backgroundColor: state.selectedDate != null
-                          ? Theme.of(context).colorScheme.primaryContainer
-                          : null,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: state.loading
-                ? const Center(child: CircularProgressIndicator())
-                : !state.searched
-                    ? _EmptyState(onSearch: _search)
-                    : state.results.isEmpty
-                        ? const _NoResults()
-                        : ListView.builder(
-                            padding: const EdgeInsets.only(top: 2, bottom: 90),
-                            itemCount: state.results.length,
-                            itemBuilder: (context, i) {
-                              final ride = state.results[i];
-                              return TurnoCard(
-                                originCommune: ride.originCommune,
-                                universityName: ride.universityName ?? '',
-                                universityCode: ride.universityCode,
-                                campusName: ride.campusName ?? '',
-                                meetingPoint: ride.meetingPoint,
-                                departureAt: ride.departureAt,
-                                direction:
-                                    ride.direction == RideDirection.toCampus
-                                        ? 'to_campus'
-                                        : 'from_campus',
-                                seatsAvailable: ride.seatsAvailable,
-                                seatPrice: ride.seatPrice,
-                                platformFee: ride.platformFee,
-                                driverNetAmount: ride.driverNetAmount,
-                                isRadial: ride.isRadial,
-                                onTap: () =>
-                                    context.push('/booking/${ride.id}'),
-                              );
-                            },
+                      _FilterChipDropdown<String>(
+                        label: 'Direccion',
+                        value: state.selectedDirection,
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'to_campus', child: Text('Hacia campus')),
+                          DropdownMenuItem(
+                            value: 'from_campus',
+                            child: Text('Desde campus'),
                           ),
-          ),
-        ],
+                        ],
+                        onChanged: (v) async {
+                          notifier.setDirection(v);
+                          await _search();
+                        },
+                      ),
+                      state.campusesError != null
+                          ? ActionChip(
+                              avatar: const Icon(
+                                Icons.error_outline,
+                                size: 16,
+                                color: Color(0xFF8A2F43),
+                              ),
+                              label: const Text('Reintentar campus'),
+                              onPressed: notifier.loadCampuses,
+                            )
+                          : _FilterChipDropdown<String>(
+                              label: state.loadingCampuses
+                                  ? 'Cargando campus...'
+                                  : 'Campus',
+                              value: state.selectedCampusId,
+                              items: state.campuses
+                                  .map(
+                                    (c) => DropdownMenuItem(
+                                      value: c['id'] as String,
+                                      child: Text(
+                                        '${c['name']} · ${(c['universities'] as Map?)?['name'] ?? ''}',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: state.loadingCampuses
+                                  ? (_) {}
+                                  : (v) async {
+                                      notifier.setCampus(v);
+                                      await _search();
+                                    },
+                            ),
+                      ActionChip(
+                        label: Text(
+                          state.selectedDate != null
+                              ? '${state.selectedDate!.day}/${state.selectedDate!.month}'
+                              : 'Fecha',
+                        ),
+                        avatar: const Icon(Icons.calendar_today, size: 16),
+                        onPressed: _pickDate,
+                        backgroundColor: state.selectedDate != null
+                            ? Theme.of(context).colorScheme.primaryContainer
+                            : null,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: state.loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : !state.searched
+                      ? _EmptyState(onSearch: _search)
+                      : state.results.isEmpty
+                          ? const _NoResults()
+                          : FadeTransition(
+                              opacity: _listAnimation,
+                              child: ListView.builder(
+                                padding:
+                                    const EdgeInsets.only(top: 2, bottom: 90),
+                                itemCount: state.results.length,
+                                itemBuilder: (context, i) {
+                                  final ride = state.results[i];
+                                  return TurnoCard(
+                                    originCommune: ride.originCommune,
+                                    universityName: ride.universityName ?? '',
+                                    universityCode: ride.universityCode,
+                                    campusName: ride.campusName ?? '',
+                                    meetingPoint: ride.meetingPoint,
+                                    departureAt: ride.departureAt,
+                                    direction:
+                                        ride.direction == RideDirection.toCampus
+                                            ? 'to_campus'
+                                            : 'from_campus',
+                                    seatsAvailable: ride.seatsAvailable,
+                                    seatPrice: ride.seatPrice,
+                                    platformFee: ride.platformFee,
+                                    driverNetAmount: ride.driverNetAmount,
+                                    isRadial: ride.isRadial,
+                                    onTap: () =>
+                                        context.push('/booking/${ride.id}'),
+                                  );
+                                },
+                              ),
+                            ),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: !state.searched
           ? FloatingActionButton.extended(
