@@ -22,6 +22,7 @@ import '../../core/error_mapper.dart';
 import '../../models/transaction.dart';
 import '../../providers/wallet_provider.dart';
 import '../../shared/widgets/app_snackbar.dart';
+import '../../shared/widgets/decorative_background.dart';
 import '../../shared/widgets/loading_overlay.dart';
 
 class WalletScreen extends ConsumerStatefulWidget {
@@ -31,11 +32,29 @@ class WalletScreen extends ConsumerStatefulWidget {
   ConsumerState<WalletScreen> createState() => _WalletScreenState();
 }
 
-class _WalletScreenState extends ConsumerState<WalletScreen> {
+class _WalletScreenState extends ConsumerState<WalletScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _fadeController;
+  late final Animation<double> _fadeAnimation;
+
   @override
   void initState() {
     super.initState();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
     Future.microtask(() => ref.read(walletProvider.notifier).load());
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -233,6 +252,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final wallet = state.wallet;
     final transactions = state.transactions;
 
+    if (!state.loading && !_fadeController.isCompleted) {
+      _fadeController.forward();
+    }
+
     final balanceFmt = NumberFormat.currency(
       locale: 'es_CL',
       symbol: '\$',
@@ -260,105 +283,111 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         ),
         body: state.loading
             ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF1E5B7A), Color(0xFF2A6C8E)],
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Saldo disponible',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFFD7E8F2),
+            : DecorativeBackground(
+                child: RefreshIndicator(
+                  onRefresh: _load,
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF1E5B7A), Color(0xFF2A6C8E)],
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            balanceFmt,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 34,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          if ((wallet?.balanceHeld ?? 0) > 0) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              '$heldFmt en reservas activas',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFFD7E8F2),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 16),
-                          Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: _startTopup,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: const Color(0xFF1E5B7A),
-                                  ),
-                                  icon: const Icon(Icons.add),
-                                  label: const Text('Recargar'),
+                              const Text(
+                                'Saldo disponible',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFFD7E8F2),
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: _requestWithdrawal,
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    side: const BorderSide(
-                                      color: Color(0xFFD5E7F3),
+                              const SizedBox(height: 4),
+                              Text(
+                                balanceFmt,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              if ((wallet?.balanceHeld ?? 0) > 0) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$heldFmt en reservas activas',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFFD7E8F2),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _startTopup,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor:
+                                            const Color(0xFF1E5B7A),
+                                      ),
+                                      icon: const Icon(Icons.add),
+                                      label: const Text('Recargar'),
                                     ),
                                   ),
-                                  icon: const Icon(Icons.arrow_downward),
-                                  label: const Text('Retirar'),
-                                ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: _requestWithdrawal,
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.white,
+                                        side: const BorderSide(
+                                          color: Color(0xFFD5E7F3),
+                                        ),
+                                      ),
+                                      icon: const Icon(Icons.arrow_downward),
+                                      label: const Text('Retirar'),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    if (transactions.isNotEmpty) ...[
-                      Text(
-                        'Historial',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 8),
-                      ...transactions.map((tx) => _TransactionTile(tx: tx)),
-                    ] else
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32),
-                          child: Text(
-                            'Sin movimientos aun',
-                            style: TextStyle(color: Color(0xFF6A7783)),
-                          ),
                         ),
-                      ),
-                  ],
+                        const SizedBox(height: 18),
+                        if (transactions.isNotEmpty) ...[
+                          Text(
+                            'Historial',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 8),
+                          ...transactions.map((tx) => _TransactionTile(tx: tx)),
+                        ] else
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32),
+                              child: Text(
+                                'Sin movimientos aun',
+                                style: TextStyle(color: Color(0xFF6A7783)),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
       ),

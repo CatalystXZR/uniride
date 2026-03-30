@@ -24,6 +24,7 @@ import '../../models/user_profile.dart';
 import '../../providers/home_provider.dart';
 import '../../providers/service_providers.dart';
 import '../../shared/widgets/app_snackbar.dart';
+import '../../shared/widgets/decorative_background.dart';
 import '../../shared/widgets/loading_overlay.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -33,11 +34,29 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _fadeController;
+  late final Animation<double> _fadeAnimation;
+
   @override
   void initState() {
     super.initState();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
     Future.microtask(() => ref.read(homeProvider.notifier).load());
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -371,6 +390,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final wallet = state.wallet;
     final isDriver = profile?.roleMode == RoleMode.driver;
 
+    if (!state.loading && !_fadeController.isCompleted) {
+      _fadeController.forward();
+    }
+
     final balanceStr = NumberFormat.currency(
       locale: 'es_CL',
       symbol: '\$',
@@ -398,127 +421,134 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         body: state.loading
             ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                  children: [
-                    _RoleSwitchCard(
-                      isDriver: isDriver,
-                      name: profile?.fullName ?? 'Usuario',
-                      photoUrl: profile?.profilePhotoUrl,
-                      onToggle: _toggleRole,
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final changed = await context.push('/profile/edit');
-                        if (changed == true) {
-                          _load();
-                        }
-                      },
-                      icon: const Icon(Icons.person_outline),
-                      label: const Text('Editar mi perfil y auto'),
-                    ),
-                    const SizedBox(height: 12),
-                    _BalanceCard(
-                      balance: balanceStr,
-                      held: wallet?.balanceHeld ?? 0,
-                      onTopup: () => context.push('/wallet'),
-                    ),
-                    if ((profile?.strikesCount ?? 0) > 0 ||
-                        (profile?.suspendedUntil != null)) ...[
-                      const SizedBox(height: 12),
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Estado de seguridad',
-                                style: TextStyle(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 6),
-                              Text('Strikes: ${profile?.strikesCount ?? 0}/2'),
-                              if (profile?.suspendedUntil != null)
-                                Text(
-                                  'Suspendido hasta: ${DateFormat('d MMM y', 'es').format(profile!.suspendedUntil!)}',
-                                  style: const TextStyle(
-                                    color: Color(0xFF8A2F43),
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                            ],
-                          ),
+            : DecorativeBackground(
+                child: RefreshIndicator(
+                  onRefresh: _load,
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                      children: [
+                        _RoleSwitchCard(
+                          isDriver: isDriver,
+                          name: profile?.fullName ?? 'Usuario',
+                          photoUrl: profile?.profilePhotoUrl,
+                          onToggle: _toggleRole,
                         ),
-                      ),
-                    ],
-                    const SizedBox(height: 18),
-                    Text(
-                      'Acciones principales',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final changed = await context.push('/profile/edit');
+                            if (changed == true) {
+                              _load();
+                            }
+                          },
+                          icon: const Icon(Icons.person_outline),
+                          label: const Text('Editar mi perfil y auto'),
+                        ),
+                        const SizedBox(height: 12),
+                        _BalanceCard(
+                          balance: balanceStr,
+                          held: wallet?.balanceHeld ?? 0,
+                          onTopup: () => context.push('/wallet'),
+                        ),
+                        if ((profile?.strikesCount ?? 0) > 0 ||
+                            (profile?.suspendedUntil != null)) ...[
+                          const SizedBox(height: 12),
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Estado de seguridad',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.w700),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                      'Strikes: ${profile?.strikesCount ?? 0}/2'),
+                                  if (profile?.suspendedUntil != null)
+                                    Text(
+                                      'Suspendido hasta: ${DateFormat('d MMM y', 'es').format(profile!.suspendedUntil!)}',
+                                      style: const TextStyle(
+                                        color: Color(0xFF8A2F43),
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 18),
+                        Text(
+                          'Acciones principales',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 10),
+                        if (isDriver) ...[
+                          _ActionButton(
+                            icon: Icons.add_circle_outline,
+                            label: 'Publicar turno',
+                            subtitle: 'Comparte tu ruta y define cupos',
+                            color: const Color(0xFF1E5B7A),
+                            onTap: () => context.push('/publish'),
+                          ),
+                          const SizedBox(height: 10),
+                          _ActionButton(
+                            icon: Icons.directions_car_outlined,
+                            label: 'Mis turnos publicados',
+                            subtitle: 'Revisa pasajeros y estado de viajes',
+                            color: const Color(0xFF365D74),
+                            onTap: () => context.push('/driver-rides'),
+                          ),
+                        ] else ...[
+                          _ActionButton(
+                            icon: Icons.search,
+                            label: 'Buscar turno',
+                            subtitle: 'Encuentra viajes por comuna y campus',
+                            color: const Color(0xFF1E5B7A),
+                            onTap: () => context.push('/search'),
+                          ),
+                          const SizedBox(height: 10),
+                          _ActionButton(
+                            icon: Icons.confirmation_num_outlined,
+                            label: 'Mis reservas',
+                            subtitle: 'Confirma abordaje o revisa historial',
+                            color: const Color(0xFF365D74),
+                            onTap: () => context.push('/my-rides'),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: () => context.push('/terms'),
+                          icon: const Icon(Icons.gavel_outlined),
+                          label: const Text('Terminos y seguridad'),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            AppSnackbar.show(
+                              context,
+                              'En emergencia llama al ${AppConstants.emergencyPhoneCL}.',
+                              isError: true,
+                            );
+                          },
+                          icon: const Icon(Icons.emergency_outlined),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF8A2F43),
+                            side: const BorderSide(color: Color(0xFF8A2F43)),
+                          ),
+                          label: const Text('Boton de panico'),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 10),
-                    if (isDriver) ...[
-                      _ActionButton(
-                        icon: Icons.add_circle_outline,
-                        label: 'Publicar turno',
-                        subtitle: 'Comparte tu ruta y define cupos',
-                        color: const Color(0xFF1E5B7A),
-                        onTap: () => context.push('/publish'),
-                      ),
-                      const SizedBox(height: 10),
-                      _ActionButton(
-                        icon: Icons.directions_car_outlined,
-                        label: 'Mis turnos publicados',
-                        subtitle: 'Revisa pasajeros y estado de viajes',
-                        color: const Color(0xFF365D74),
-                        onTap: () => context.push('/driver-rides'),
-                      ),
-                    ] else ...[
-                      _ActionButton(
-                        icon: Icons.search,
-                        label: 'Buscar turno',
-                        subtitle: 'Encuentra viajes por comuna y campus',
-                        color: const Color(0xFF1E5B7A),
-                        onTap: () => context.push('/search'),
-                      ),
-                      const SizedBox(height: 10),
-                      _ActionButton(
-                        icon: Icons.confirmation_num_outlined,
-                        label: 'Mis reservas',
-                        subtitle: 'Confirma abordaje o revisa historial',
-                        color: const Color(0xFF365D74),
-                        onTap: () => context.push('/my-rides'),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () => context.push('/terms'),
-                      icon: const Icon(Icons.gavel_outlined),
-                      label: const Text('Terminos y seguridad'),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        AppSnackbar.show(
-                          context,
-                          'En emergencia llama al ${AppConstants.emergencyPhoneCL}.',
-                          isError: true,
-                        );
-                      },
-                      icon: const Icon(Icons.emergency_outlined),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF8A2F43),
-                        side: const BorderSide(color: Color(0xFF8A2F43)),
-                      ),
-                      label: const Text('Boton de panico'),
-                    ),
-                  ],
+                  ),
                 ),
               ),
       ),
@@ -743,6 +773,8 @@ class _ActionButton extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
+        splashColor: Colors.white.withValues(alpha: 0.2),
+        highlightColor: Colors.white.withValues(alpha: 0.05),
         child: Ink(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
