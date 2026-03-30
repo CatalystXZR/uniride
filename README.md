@@ -150,3 +150,15 @@ supabase db push
 - Los fondos del pasajero quedan **retenidos** al reservar y se **liberan al conductor** solo cuando el pasajero confirma el abordaje
 
 ---
+
+## Documento formal completo
+
+Para una vista integral (producto + arquitectura + decisiones + operacion) revisar:
+
+- `PROJECT_BRIEF_COMPLETE.md`
+
+Este documento esta preparado para:
+- onboarding tecnico de IAs y desarrolladores,
+- presentacion ejecutiva/funcional a personas no tecnicas.
+
+---
