@@ -41,20 +41,49 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function jsonResponse(payload: unknown, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function sanitizeAmount(rawAmount: unknown): number | null {
+  if (typeof rawAmount === "number") {
+    if (!Number.isFinite(rawAmount)) return null;
+    return Math.round(rawAmount);
+  }
+  if (typeof rawAmount === "string") {
+    const parsed = Number(rawAmount.trim());
+    if (!Number.isFinite(parsed)) return null;
+    return Math.round(parsed);
+  }
+  return null;
+}
+
+function logInfo(event: string, details: Record<string, unknown> = {}) {
+  console.log(JSON.stringify({ level: "info", event, ...details }));
+}
+
+function logError(event: string, details: Record<string, unknown> = {}) {
+  console.error(JSON.stringify({ level: "error", event, ...details }));
+}
+
 serve(async (req) => {
   // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "method_not_allowed" }, 405);
+  }
+
   try {
     // ── Auth: extract calling user from JWT ──────────────────
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "unauthorized" }, 401);
     }
 
     const supabase = createClient(
@@ -66,29 +95,25 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: "invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "invalid_token" }, 401);
     }
 
     // ── Parse body ───────────────────────────────────────────
-    const { amount } = await req.json() as { amount: number };
+    const body = await req.json() as { amount?: unknown };
+    const amount = sanitizeAmount(body.amount);
+
+    if (amount == null) {
+      return jsonResponse({ error: "invalid_amount" }, 400);
+    }
 
     // Minimum topup: $2.000 CLP
-    if (!amount || amount < 2000) {
-      return new Response(JSON.stringify({ error: "minimum amount is 2000 CLP" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (amount < 2000) {
+      return jsonResponse({ error: "minimum amount is 2000 CLP" }, 400);
     }
 
     // Maximum topup: $200.000 CLP per transaction (fraud prevention)
     if (amount > 200000) {
-      return new Response(JSON.stringify({ error: "maximum amount is 200000 CLP" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "maximum amount is 200000 CLP" }, 400);
     }
 
     // ── Create Mercado Pago preference ───────────────────────
@@ -139,33 +164,34 @@ serve(async (req) => {
 
     if (!mpRes.ok) {
       const errText = await mpRes.text();
-      console.error("MP preference creation failed:", errText);
-      return new Response(JSON.stringify({ error: "payment provider error" }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      logError("mp_preference_create_failed", {
+        user_id: user.id,
+        amount,
+        status: mpRes.status,
+        response: errText,
       });
+      return jsonResponse({ error: "payment provider error" }, 502);
     }
 
     const mpData = await mpRes.json();
 
-    return new Response(
-      JSON.stringify({
-        init_point:        mpData.init_point,         // Production checkout URL
-        sandbox_init_point: mpData.sandbox_init_point, // Test URL
-        preference_id:     mpData.id,
-        external_reference: externalRef,
-      }),
-      {
-        status:  200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    logInfo("topup_intent_created", {
+      user_id: user.id,
+      amount,
+      preference_id: mpData.id,
+    });
+
+    return jsonResponse({
+      init_point: mpData.init_point,
+      sandbox_init_point: mpData.sandbox_init_point,
+      preference_id: mpData.id,
+      external_reference: externalRef,
+    });
 
   } catch (err) {
-    console.error("create-topup-intent error:", err);
-    return new Response(JSON.stringify({ error: "internal server error" }), {
-      status:  500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    logError("create_topup_intent_unhandled", {
+      message: err instanceof Error ? err.message : String(err),
     });
+    return jsonResponse({ error: "internal server error" }, 500);
   }
 });

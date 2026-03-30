@@ -32,6 +32,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const MP_ACCESS_TOKEN   = Deno.env.get("MP_ACCESS_TOKEN")!;
 const MP_WEBHOOK_SECRET = Deno.env.get("MP_WEBHOOK_SECRET") ?? "";
 
+function logInfo(event: string, details: Record<string, unknown> = {}) {
+  console.log(JSON.stringify({ level: "info", event, ...details }));
+}
+
+function logWarn(event: string, details: Record<string, unknown> = {}) {
+  console.warn(JSON.stringify({ level: "warn", event, ...details }));
+}
+
+function logError(event: string, details: Record<string, unknown> = {}) {
+  console.error(JSON.stringify({ level: "error", event, ...details }));
+}
+
 // ── HMAC-SHA256 signature verification ──────────────────────────────────────
 //
 // Mercado Pago signs each webhook with the header:
@@ -47,7 +59,7 @@ async function verifyMPSignature(
   if (!MP_WEBHOOK_SECRET) {
     // If the secret is not configured, skip verification (dev/staging only).
     // Production deploys MUST set MP_WEBHOOK_SECRET.
-    console.warn("MP_WEBHOOK_SECRET not set — skipping signature verification");
+    logWarn("mp_webhook_secret_missing", { data_id: dataId });
     return true;
   }
 
@@ -55,7 +67,7 @@ async function verifyMPSignature(
   const xRequestId = req.headers.get("x-request-id") ?? "";
 
   if (!xSignature) {
-    console.error("Missing x-signature header");
+    logError("mp_webhook_missing_signature", { data_id: dataId });
     return false;
   }
 
@@ -71,7 +83,10 @@ async function verifyMPSignature(
   const receivedHmac = parts["v1"];
 
   if (!ts || !receivedHmac) {
-    console.error("Malformed x-signature header:", xSignature);
+    logError("mp_webhook_malformed_signature", {
+      data_id: dataId,
+      signature: xSignature,
+    });
     return false;
   }
 
@@ -79,7 +94,7 @@ async function verifyMPSignature(
   const tsMs = parseInt(ts, 10);
   const nowMs = Date.now();
   if (Math.abs(nowMs - tsMs) > 5 * 60 * 1000) {
-    console.error("Webhook timestamp too old:", ts);
+    logError("mp_webhook_stale_timestamp", { data_id: dataId, ts });
     return false;
   }
 
@@ -111,7 +126,7 @@ async function verifyMPSignature(
     diff |= computedHmac.charCodeAt(i) ^ receivedHmac.charCodeAt(i);
   }
   if (diff !== 0) {
-    console.error("Signature mismatch — request rejected");
+    logError("mp_webhook_signature_mismatch", { data_id: dataId });
     return false;
   }
 
@@ -133,7 +148,10 @@ serve(async (req) => {
   try {
     // ── Parse the notification ────────────────────────────────
     const body = await req.json();
-    console.log("MP webhook received:", JSON.stringify(body));
+    logInfo("mp_webhook_received", {
+      body_type: body?.type ?? body?.topic,
+      body_id: body?.data?.id ?? body?.id ?? body?.data_id,
+    });
 
     // MP sends two formats: IPN (type/id) and modern webhooks (action/data.id)
     const topic  = body.type   ?? body.topic;
@@ -141,6 +159,7 @@ serve(async (req) => {
 
     // Only handle payment events
     if (topic !== "payment" || !dataId) {
+      logInfo("mp_webhook_ignored", { topic, data_id: dataId || null });
       return new Response("ignored", { status: 200 });
     }
 
@@ -158,16 +177,29 @@ serve(async (req) => {
     });
 
     if (!mpRes.ok) {
-      console.error("Failed to fetch payment from MP:", await mpRes.text());
+      const response = await mpRes.text();
+      logError("mp_payment_fetch_failed", {
+        data_id: dataId,
+        status: mpRes.status,
+        response,
+      });
       // Return 200 so MP doesn't retry — we'll lose this event but won't loop
       return new Response("payment fetch failed", { status: 200 });
     }
 
     const payment = await mpRes.json();
-    console.log("MP payment:", JSON.stringify(payment));
+    logInfo("mp_payment_fetched", {
+      payment_id: payment?.id,
+      status: payment?.status,
+      external_reference: payment?.external_reference,
+    });
 
     // Only credit on approved payments
     if (payment.status !== "approved") {
+      logInfo("mp_payment_not_approved", {
+        payment_id: payment?.id,
+        status: payment?.status,
+      });
       return new Response("not approved", { status: 200 });
     }
 
@@ -178,7 +210,10 @@ serve(async (req) => {
     // external_reference format: "turnoapp_topup_<userId>_<timestamp>"
     const parts = externalRef.split("_");
     if (parts.length < 4 || parts[0] !== "turnoapp" || parts[1] !== "topup") {
-      console.warn("Unexpected external_reference:", externalRef);
+      logWarn("mp_payment_unrecognized_external_reference", {
+        payment_id: paymentId,
+        external_reference: externalRef,
+      });
       return new Response("unrecognized reference", { status: 200 });
     }
     const userId = parts[2]; // UUID
@@ -196,7 +231,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existing) {
-      console.log("Duplicate webhook for payment", paymentId, "— skipping");
+      logInfo("mp_webhook_duplicate", { payment_id: paymentId });
       return new Response("already processed", { status: 200 });
     }
 
@@ -209,16 +244,27 @@ serve(async (req) => {
     });
 
     if (creditErr) {
-      console.error("credit_wallet_topup failed:", creditErr);
+      logError("credit_wallet_topup_failed", {
+        payment_id: paymentId,
+        user_id: userId,
+        amount_clp: amountCLP,
+        error: creditErr.message,
+      });
       // Return 500 so MP retries — the RPC must be idempotent
       return new Response("credit failed", { status: 500 });
     }
 
-    console.log(`Credited ${amountCLP} CLP to user ${userId}`);
+    logInfo("wallet_topped_up", {
+      payment_id: paymentId,
+      user_id: userId,
+      amount_clp: amountCLP,
+    });
     return new Response("ok", { status: 200 });
 
   } catch (err) {
-    console.error("Webhook handler error:", err);
+    logError("mp_webhook_unhandled", {
+      message: err instanceof Error ? err.message : String(err),
+    });
     // Return 500 so MP retries the notification
     return new Response("internal error", { status: 500 });
   }

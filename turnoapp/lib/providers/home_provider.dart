@@ -73,6 +73,10 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
   Future<void> refresh() => load();
 
+  void clearError() {
+    state = state.copyWith(clearError: true);
+  }
+
   Future<void> setRoleMode(RoleMode mode) async {
     state = state.copyWith(switchingRole: true);
     try {
