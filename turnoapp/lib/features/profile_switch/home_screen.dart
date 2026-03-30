@@ -108,12 +108,12 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       final hasVehicleData =
           (_profile?.vehicleBrand?.trim().isNotEmpty ?? false) &&
-              (_profile?.vehicleModel?.trim().isNotEmpty ?? false) &&
-              (_profile?.vehicleVersion?.trim().isNotEmpty ?? false) &&
-              ((_profile?.vehicleDoors ?? 0) >= 2) &&
-              ((_profile?.vehicleDoors ?? 0) <= 6) &&
-              (_profile?.vehicleBodyType?.trim().isNotEmpty ?? false) &&
-              (_profile?.vehiclePlate?.trim().isNotEmpty ?? false);
+          (_profile?.vehicleModel?.trim().isNotEmpty ?? false) &&
+          (_profile?.vehicleVersion?.trim().isNotEmpty ?? false) &&
+          ((_profile?.vehicleDoors ?? 0) >= 2) &&
+          ((_profile?.vehicleDoors ?? 0) <= 6) &&
+          (_profile?.vehicleBodyType?.trim().isNotEmpty ?? false) &&
+          (_profile?.vehiclePlate?.trim().isNotEmpty ?? false);
 
       if (!hasVehicleData) {
         final completed = await _promptDriverVehicleRequirements();
@@ -122,7 +122,8 @@ class _HomeScreenState extends State<HomeScreen> {
         await _load();
         if (!mounted || _profile == null) return;
 
-        final readyNow = (_profile?.hasValidLicense ?? false) &&
+        final readyNow =
+            (_profile?.hasValidLicense ?? false) &&
             _hasCompleteDriverVehicleData(_profile!);
         if (!readyNow) {
           if (mounted) {
@@ -136,8 +137,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
       if ((_profile?.suspendedUntil?.isAfter(DateTime.now()) ?? false)) {
-        final until =
-            DateFormat('d MMM y', 'es').format(_profile!.suspendedUntil!);
+        final until = DateFormat(
+          'd MMM y',
+          'es',
+        ).format(_profile!.suspendedUntil!);
         if (mounted) {
           AppSnackbar.show(
             context,
@@ -183,21 +186,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<bool> _promptDriverVehicleRequirements() async {
-    final fullNameController =
-        TextEditingController(text: _profile?.fullName ?? '');
-    final brandController =
-        TextEditingController(text: _profile?.vehicleBrand ?? '');
-    final modelController =
-        TextEditingController(text: _profile?.vehicleModel ?? '');
-    final versionController =
-        TextEditingController(text: _profile?.vehicleVersion ?? '');
+    final fullNameController = TextEditingController(
+      text: _profile?.fullName ?? '',
+    );
+    final brandController = TextEditingController(
+      text: _profile?.vehicleBrand ?? '',
+    );
+    final modelController = TextEditingController(
+      text: _profile?.vehicleModel ?? '',
+    );
+    final versionController = TextEditingController(
+      text: _profile?.vehicleVersion ?? '',
+    );
     final doorsController = TextEditingController(
       text: _profile?.vehicleDoors != null ? '${_profile?.vehicleDoors}' : '',
     );
-    final bodyController =
-        TextEditingController(text: _profile?.vehicleBodyType ?? '');
-    final plateController =
-        TextEditingController(text: _profile?.vehiclePlate ?? '');
+    final bodyController = TextEditingController(
+      text: _profile?.vehicleBodyType ?? '',
+    );
+    final plateController = TextEditingController(
+      text: _profile?.vehiclePlate ?? '',
+    );
     var hasLicense = _profile?.hasValidLicense ?? false;
     final formKey = GlobalKey<FormState>();
     var saving = false;
@@ -237,8 +246,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: fullNameController,
-                        decoration:
-                            const InputDecoration(labelText: 'Nombre completo'),
+                        decoration: const InputDecoration(
+                          labelText: 'Nombre completo',
+                        ),
                         validator: (v) => (v?.trim().length ?? 0) >= 3
                             ? null
                             : 'Nombre requerido',
@@ -272,7 +282,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         controller: doorsController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
-                            labelText: 'Cantidad de puertas'),
+                          labelText: 'Cantidad de puertas',
+                        ),
                         validator: (v) {
                           final n = int.tryParse(v?.trim() ?? '');
                           if (n == null) return 'Puertas requeridas';
@@ -283,8 +294,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 10),
                       TextFormField(
                         controller: bodyController,
-                        decoration:
-                            const InputDecoration(labelText: 'Carroceria'),
+                        decoration: const InputDecoration(
+                          labelText: 'Carroceria',
+                        ),
                         validator: (v) => (v?.trim().isNotEmpty ?? false)
                             ? null
                             : 'Carroceria requerida',
@@ -304,7 +316,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         contentPadding: EdgeInsets.zero,
                         title: const Text('Licencia de conducir vigente'),
                         subtitle: const Text(
-                            'Obligatorio para conducir en TurnoApp.'),
+                          'Obligatorio para conducir en TurnoApp.',
+                        ),
                         onChanged: (v) => setModalState(() => hasLicense = v),
                       ),
                       const SizedBox(height: 12),
@@ -329,10 +342,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                     profilePhotoUrl: _profile?.profilePhotoUrl,
                                     vehicleBrand: brandController.text.trim(),
                                     vehicleModel: modelController.text.trim(),
-                                    vehicleVersion:
-                                        versionController.text.trim(),
-                                    vehicleDoors:
-                                        int.parse(doorsController.text.trim()),
+                                    vehicleVersion: versionController.text
+                                        .trim(),
+                                    vehicleDoors: int.parse(
+                                      doorsController.text.trim(),
+                                    ),
                                     vehicleBodyType: bodyController.text.trim(),
                                     vehiclePlate: plateController.text
                                         .trim()
@@ -364,11 +378,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 }
                               },
                         child: Text(
-                            saving ? 'Guardando...' : 'Guardar y continuar'),
+                          saving ? 'Guardando...' : 'Guardar y continuar',
+                        ),
                       ),
                       TextButton(
-                        onPressed:
-                            saving ? null : () => Navigator.of(ctx).pop(false),
+                        onPressed: saving
+                            ? null
+                            : () => Navigator.of(ctx).pop(false),
                         child: const Text('Cancelar'),
                       ),
                     ],
@@ -482,10 +498,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 18),
                     Text(
                       'Acciones principales',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     if (_isDriver) ...[
@@ -576,8 +591,9 @@ class _RoleSwitchCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor:
-                      Theme.of(context).colorScheme.primaryContainer,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer,
                   backgroundImage: (photoUrl != null && photoUrl!.isNotEmpty)
                       ? NetworkImage(photoUrl!)
                       : null,
@@ -631,10 +647,7 @@ class _RoleSwitchCard extends StatelessWidget {
             if (photoUrl == null || photoUrl!.isEmpty)
               const Text(
                 'Tip: agrega foto de perfil en editar perfil para generar mas confianza.',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF6A7783),
-                ),
+                style: TextStyle(fontSize: 11, color: Color(0xFF6A7783)),
               ),
             const SizedBox(height: 14),
             Container(

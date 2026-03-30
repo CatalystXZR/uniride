@@ -2,9 +2,9 @@
  *
  * Project: TurnoApp
  *
- * Original Concept: Agustín Puelma, Cristobal Cordova, Carlos Ibarra
+ * Original Concept: Agustin Puelma, Cristobal Cordova, Carlos Ibarra
  *
- * Software Architecture & Code: Matías Toledo (catalystxzr)
+ * Software Architecture & Code: Matias Toledo (catalystxzr)
  *
  * Description: Production-grade implementation for UDD carpooling system.
  *
@@ -13,70 +13,49 @@
  */
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
-import '../../models/wallet.dart';
 import '../../models/transaction.dart';
-import '../../services/wallet_service.dart';
-import '../../services/withdrawal_service.dart';
+import '../../providers/wallet_provider.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/loading_overlay.dart';
 
-class WalletScreen extends StatefulWidget {
+class WalletScreen extends ConsumerStatefulWidget {
   const WalletScreen({super.key});
 
   @override
-  State<WalletScreen> createState() => _WalletScreenState();
+  ConsumerState<WalletScreen> createState() => _WalletScreenState();
 }
 
-class _WalletScreenState extends State<WalletScreen> {
-  final _walletService = WalletService();
-  final _withdrawalService = WithdrawalService();
-
-  Wallet? _wallet;
-  List<Transaction> _transactions = [];
-  bool _loading = true;
-  bool _topupLoading = false;
-
+class _WalletScreenState extends ConsumerState<WalletScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    Future.microtask(() => ref.read(walletProvider.notifier).load());
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
     try {
-      final results = await Future.wait([
-        _walletService.getWallet(),
-        _walletService.getTransactions(),
-      ]);
-      if (mounted) {
-        setState(() {
-          _wallet = results[0] as Wallet?;
-          _transactions = results[1] as List<Transaction>;
-          _loading = false;
-        });
-      }
+      await ref.read(walletProvider.notifier).load();
     } catch (e) {
-      if (mounted) {
-        setState(() => _loading = false);
-        AppSnackbar.show(
-          context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos cargar tu billetera.',
-          ),
-          isError: true,
-        );
-      }
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos cargar tu billetera.',
+        ),
+        isError: true,
+      );
     }
   }
 
   Future<void> _startTopup() async {
-    int? selected = await showModalBottomSheet<int>(
+    final selected = await showModalBottomSheet<int>(
       context: context,
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(20),
@@ -100,12 +79,12 @@ class _WalletScreenState extends State<WalletScreen> {
             Wrap(
               spacing: 10,
               runSpacing: 10,
-              children: AppConstants.quickTopupAmountsCLP.map((a) {
+              children: AppConstants.quickTopupAmountsCLP.map((amount) {
                 final fmt = NumberFormat.currency(
                   locale: 'es_CL',
                   symbol: '\$',
                   decimalDigits: 0,
-                ).format(a);
+                ).format(amount);
                 return ActionChip(
                   side: const BorderSide(color: Color(0xFFD6E1EA)),
                   shape: RoundedRectangleBorder(
@@ -115,7 +94,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     fmt,
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  onPressed: () => Navigator.pop(ctx, a),
+                  onPressed: () => Navigator.pop(ctx, amount),
                 );
               }).toList(),
             ),
@@ -127,9 +106,9 @@ class _WalletScreenState extends State<WalletScreen> {
 
     if (selected == null || !mounted) return;
 
-    setState(() => _topupLoading = true);
     try {
-      final initPoint = await _walletService.createTopupIntent(selected);
+      final initPoint =
+          await ref.read(walletProvider.notifier).createTopupIntent(selected);
       final uri = Uri.parse(initPoint);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -139,23 +118,20 @@ class _WalletScreenState extends State<WalletScreen> {
         }
       }
     } catch (e) {
-      if (mounted) {
-        AppSnackbar.show(
-          context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos iniciar la recarga. Intenta nuevamente.',
-          ),
-          isError: true,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _topupLoading = false);
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos iniciar la recarga. Intenta nuevamente.',
+        ),
+        isError: true,
+      );
     }
   }
 
   Future<void> _requestWithdrawal() async {
-    final balance = _wallet?.balanceAvailable ?? 0;
+    final balance = ref.read(walletProvider).wallet?.balanceAvailable ?? 0;
     if (balance < AppConstants.minWithdrawalCLP) {
       AppSnackbar.show(
         context,
@@ -165,10 +141,7 @@ class _WalletScreenState extends State<WalletScreen> {
       return;
     }
 
-    // Show a dialog with an amount input
-    final amountController = TextEditingController(
-      text: balance.toString(),
-    );
+    final amountController = TextEditingController(text: balance.toString());
     final formKey = GlobalKey<FormState>();
 
     final confirmed = await showDialog<bool>(
@@ -182,7 +155,7 @@ class _WalletScreenState extends State<WalletScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Ingresa el monto a retirar (mín. \$${AppConstants.minWithdrawalCLP}, máx. \$$balance).',
+                'Ingresa el monto a retirar (min. \$${AppConstants.minWithdrawalCLP}, max. \$$balance).',
                 style: const TextStyle(fontSize: 13),
               ),
               const SizedBox(height: 12),
@@ -196,7 +169,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 ),
                 validator: (v) {
                   final n = int.tryParse(v?.trim() ?? '');
-                  if (n == null) return 'Ingresa un número válido';
+                  if (n == null) return 'Ingresa un numero valido';
                   if (n < AppConstants.minWithdrawalCLP) {
                     return 'Minimo \$${AppConstants.minWithdrawalCLP}';
                   }
@@ -229,47 +202,51 @@ class _WalletScreenState extends State<WalletScreen> {
       ),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !mounted) {
+      amountController.dispose();
+      return;
+    }
 
     final amount = int.tryParse(amountController.text.trim()) ?? 0;
     amountController.dispose();
 
     try {
-      await _withdrawalService.requestWithdrawal(amount);
-      if (mounted) {
-        AppSnackbar.show(context, 'Solicitud de retiro enviada');
-        _load();
-      }
+      await ref.read(walletProvider.notifier).requestWithdrawal(amount);
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Solicitud de retiro enviada');
     } catch (e) {
-      if (mounted) {
-        AppSnackbar.show(
-          context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos enviar la solicitud de retiro.',
-          ),
-          isError: true,
-        );
-      }
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos enviar la solicitud de retiro.',
+        ),
+        isError: true,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(walletProvider);
+    final wallet = state.wallet;
+    final transactions = state.transactions;
+
     final balanceFmt = NumberFormat.currency(
       locale: 'es_CL',
       symbol: '\$',
       decimalDigits: 0,
-    ).format(_wallet?.balanceAvailable ?? 0);
+    ).format(wallet?.balanceAvailable ?? 0);
 
     final heldFmt = NumberFormat.currency(
       locale: 'es_CL',
       symbol: '\$',
       decimalDigits: 0,
-    ).format(_wallet?.balanceHeld ?? 0);
+    ).format(wallet?.balanceHeld ?? 0);
 
     return LoadingOverlay(
-      isLoading: _topupLoading,
+      isLoading: state.topupLoading,
       message: 'Abriendo Mercado Pago...',
       child: Scaffold(
         appBar: AppBar(
@@ -281,7 +258,7 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
           ],
         ),
-        body: _loading
+        body: state.loading
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
                 onRefresh: _load,
@@ -317,7 +294,7 @@ class _WalletScreenState extends State<WalletScreen> {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          if ((_wallet?.balanceHeld ?? 0) > 0) ...[
+                          if ((wallet?.balanceHeld ?? 0) > 0) ...[
                             const SizedBox(height: 4),
                             Text(
                               '$heldFmt en reservas activas',
@@ -361,8 +338,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       ),
                     ),
                     const SizedBox(height: 18),
-
-                    if (_transactions.isNotEmpty) ...[
+                    if (transactions.isNotEmpty) ...[
                       Text(
                         'Historial',
                         style: Theme.of(context)
@@ -371,9 +347,7 @@ class _WalletScreenState extends State<WalletScreen> {
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
-                      ..._transactions
-                          .map((tx) => _TransactionTile(tx: tx))
-                          .toList(),
+                      ...transactions.map((tx) => _TransactionTile(tx: tx)),
                     ] else
                       const Center(
                         child: Padding(
@@ -394,6 +368,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
 class _TransactionTile extends StatelessWidget {
   final Transaction tx;
+
   const _TransactionTile({required this.tx});
 
   @override
@@ -422,8 +397,10 @@ class _TransactionTile extends StatelessWidget {
         ),
         title: Text(tx.typeLabel,
             style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(dateFmt,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF6A7783))),
+        subtitle: Text(
+          dateFmt,
+          style: const TextStyle(fontSize: 12, color: Color(0xFF6A7783)),
+        ),
         trailing: Text(
           '${isCredit ? '+' : '-'}$amtFmt',
           style: TextStyle(

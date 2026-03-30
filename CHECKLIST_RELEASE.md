@@ -1,4 +1,4 @@
-# CHECKLIST RELEASE - TurnoApp
+# CHECKLIST RELEASE - TurnoApp (Linux/Fedora)
 
 Checklist corta para sacar release sin romper produccion.
 
@@ -9,16 +9,14 @@ Checklist corta para sacar release sin romper produccion.
 - Estar en `main` limpio (o branch de release).
 - Tener Flutter y Supabase CLI instalados.
 - Confirmar proyecto Supabase correcto: `zawaevytpkvejhekyokw`.
-- Leer `START_HERE_IA.md` si hubo cambios grandes.
+- Leer `START_HERE_IA.md` y `PLAN_BETA_ESCALABLE.md` si hubo cambios grandes.
 
 ---
 
 ## 1) Base de datos
 
-En PowerShell:
-
-```powershell
-Set-Location "C:\Users\matia\Desktop\UniRide\uniride-main"
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride"
 supabase login
 supabase link --project-ref zawaevytpkvejhekyokw
 supabase db push
@@ -38,8 +36,8 @@ En Supabase Dashboard -> Settings -> Edge Functions -> Secrets, validar:
 
 Luego desplegar funciones:
 
-```powershell
-Set-Location "C:\Users\matia\Desktop\UniRide\uniride-main"
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride"
 supabase functions deploy create-topup-intent
 supabase functions deploy mercadopago-webhook
 ```
@@ -48,11 +46,14 @@ supabase functions deploy mercadopago-webhook
 
 ## 3) Build Flutter Web
 
-```powershell
-Set-Location "C:\Users\matia\Desktop\UniRide\uniride-main\turnoapp"
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride/turnoapp"
 flutter pub get
 flutter analyze
-flutter build web --release
+if [ -d test ]; then flutter test; fi
+flutter build web --release \
+  --dart-define=SUPABASE_URL=https://zawaevytpkvejhekyokw.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=TU_ANON_KEY
 ```
 
 Notas:
@@ -65,8 +66,8 @@ Notas:
 
 Si usas Vercel estatico:
 
-```powershell
-Set-Location "C:\Users\matia\Desktop\UniRide\uniride-main\turnoapp\build\web"
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride/turnoapp/build/web"
 vercel --prod
 ```
 
@@ -114,6 +115,9 @@ select id, strikes_count, suspended_until, vehicle_suspended_until
 from users_profile
 order by created_at desc
 limit 10;
+
+select * from ops_daily_metrics limit 7;
+select * from wallet_reconciliation_diag(null) limit 20;
 ```
 
 ---

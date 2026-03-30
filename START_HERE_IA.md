@@ -57,6 +57,7 @@ TurnoApp es una PWA de carpooling universitario en Chile (Flutter Web + Supabase
 Dependencias clave (`turnoapp/pubspec.yaml`):
 - `supabase_flutter`
 - `go_router`
+- `flutter_riverpod`
 - `intl`
 - `google_fonts`
 - `url_launcher`
@@ -77,7 +78,7 @@ uniride/
 │     ├─ services/          # auth/profile/ride/booking/wallet/legal
 │     └─ features/          # pantallas por modulo
 └─ supabase/
-   ├─ migrations/           # 00..09
+   ├─ migrations/           # 00..12
    └─ functions/            # create-topup-intent, mercadopago-webhook
 ```
 
@@ -145,6 +146,16 @@ Migraciones actuales:
 8. `00000000000007_reference_rls.sql`
 9. `00000000000008_reference_diag.sql`
 10. `00000000000009_compliance_pricing_strikes.sql`
+11. `00000000000010_profile_photos_storage.sql`
+12. `00000000000011_driver_vehicle_required.sql`
+13. `00000000000012_beta_observability_scalability.sql`
+
+### Cambios importantes en 12
+
+- Índices parciales para rides activas y bookings reservadas.
+- Índice compuesto de transacciones por usuario/tipo/fecha.
+- Vista operativa `ops_daily_metrics` (ultimos 30 dias).
+- Función `wallet_reconciliation_diag(uuid)` para conciliación wallet/ledger.
 
 ### Cambios importantes en 09
 
@@ -220,12 +231,12 @@ flutter run -d edge \
 
 ---
 
-## 10) Comandos de trabajo (Windows PowerShell)
+## 10) Comandos de trabajo (Linux/Fedora)
 
 ### Migraciones
 
-```powershell
-Set-Location "C:\Users\matia\Desktop\UniRide\uniride-main"
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride"
 supabase login
 supabase link --project-ref zawaevytpkvejhekyokw
 supabase db push
@@ -233,11 +244,11 @@ supabase db push
 
 ### App
 
-```powershell
-Set-Location "C:\Users\matia\Desktop\UniRide\uniride-main\turnoapp"
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride/turnoapp"
 flutter pub get
 flutter analyze
-flutter run -d edge
+flutter run -d chrome
 ```
 
 ---
@@ -318,6 +329,12 @@ flutter run -d edge
 3. Ejecutar smoke test de la seccion 11.
 4. Abrir issues por cada pendiente P0/P1/P2 con criterio de aceptacion.
 5. Hacer cambios en ramas pequenas, validando `flutter analyze` + flujo manual.
+
+## Nota de arquitectura beta (Mar 2026)
+
+- Se introdujo capa de estado con Riverpod en flujos criticos (`wallet`, `search`, `my_rides`, `driver_rides`).
+- Servicios existentes se mantienen para retrocompatibilidad y migracion incremental.
+- El siguiente paso recomendado es migrar `home_screen` y `publish_ride` a providers para eliminar `setState` en flujo core.
 
 ---
 

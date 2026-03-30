@@ -25,6 +25,19 @@ jobs:
         working-directory: turnoapp
         run: flutter pub get
 
+      - name: Analyze Flutter code
+        working-directory: turnoapp
+        run: flutter analyze
+
+      - name: Run tests when present
+        working-directory: turnoapp
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "No test directory found, skipping tests"
+          fi
+
       - name: Build Flutter web
         working-directory: turnoapp
         run: |

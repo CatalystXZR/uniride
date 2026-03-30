@@ -2,9 +2,9 @@
  *
  * Project: TurnoApp
  *
- * Original Concept: Agustín Puelma, Cristobal Cordova, Carlos Ibarra
+ * Original Concept: Agustin Puelma, Cristobal Cordova, Carlos Ibarra
  *
- * Software Architecture & Code: Matías Toledo (catalystxzr)
+ * Software Architecture & Code: Matias Toledo (catalystxzr)
  *
  * Description: Production-grade implementation for UDD carpooling system.
  *
@@ -13,33 +13,32 @@
  */
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
 import '../../models/booking.dart';
 import '../../models/enums.dart';
-import '../../services/booking_service.dart';
+import '../../providers/my_rides_provider.dart';
 import '../../shared/widgets/app_snackbar.dart';
 
-class MyRidesScreen extends StatefulWidget {
+class MyRidesScreen extends ConsumerStatefulWidget {
   const MyRidesScreen({super.key});
 
   @override
-  State<MyRidesScreen> createState() => _MyRidesScreenState();
+  ConsumerState<MyRidesScreen> createState() => _MyRidesScreenState();
 }
 
-class _MyRidesScreenState extends State<MyRidesScreen>
+class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final _bookingService = BookingService();
 
-  List<Booking> _bookings = [];
-  bool _loading = true;
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _load();
+    Future.microtask(() => ref.read(myRidesProvider.notifier).load());
   }
 
   @override
@@ -49,22 +48,16 @@ class _MyRidesScreenState extends State<MyRidesScreen>
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
     try {
-      _bookings = await _bookingService.getMyBookings();
+      await ref.read(myRidesProvider.notifier).load();
     } catch (e) {
-      if (mounted) {
-        AppSnackbar.show(
-          context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos cargar tus reservas.',
-          ),
-          isError: true,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(e,
+            fallback: 'No pudimos cargar tus reservas.'),
+        isError: true,
+      );
     }
   }
 
@@ -78,14 +71,13 @@ class _MyRidesScreenState extends State<MyRidesScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Al presionar "ME SUBÍ AL AUTO" liberas el pago al conductor.',
+              'Al presionar "ME SUBI AL AUTO" liberas el pago al conductor.',
               style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 12),
             Text(
-              'Se liberarán \$${booking.amountTotal} al conductor.',
-              style: const TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: 15),
+              'Se liberaran \$${booking.amountTotal} al conductor.',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
             ),
           ],
         ),
@@ -96,9 +88,9 @@ class _MyRidesScreenState extends State<MyRidesScreen>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style:
-                ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2F7D67)),
-            child: const Text('ME SUBÍ AL AUTO'),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2F7D67)),
+            child: const Text('ME SUBI AL AUTO'),
           ),
         ],
       ),
@@ -107,22 +99,17 @@ class _MyRidesScreenState extends State<MyRidesScreen>
     if (confirmed != true || !mounted) return;
 
     try {
-      await _bookingService.confirmBoarding(booking.id);
-      if (mounted) {
-        AppSnackbar.show(context, 'Pago liberado al conductor. ¡Buen viaje!');
-        _load();
-      }
+      await ref.read(myRidesProvider.notifier).confirmBoarding(booking.id);
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Pago liberado al conductor. Buen viaje!');
     } catch (e) {
-      if (mounted) {
-        AppSnackbar.show(
-          context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos confirmar el abordaje.',
-          ),
-          isError: true,
-        );
-      }
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(e,
+            fallback: 'No pudimos confirmar el abordaje.'),
+        isError: true,
+      );
     }
   }
 
@@ -136,14 +123,13 @@ class _MyRidesScreenState extends State<MyRidesScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Se cancelará tu reserva y los fondos serán devueltos a tu billetera.',
+              'Se cancelara tu reserva y los fondos seran devueltos a tu billetera.',
               style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 12),
             Text(
-              'Se devolverán \$${booking.amountTotal} a tu saldo.',
-              style: const TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: 15),
+              'Se devolveran \$${booking.amountTotal} a tu saldo.',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
             ),
           ],
         ),
@@ -154,8 +140,8 @@ class _MyRidesScreenState extends State<MyRidesScreen>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style:
-                ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8A2F43)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8A2F43)),
             child: const Text('Cancelar reserva'),
           ),
         ],
@@ -165,22 +151,17 @@ class _MyRidesScreenState extends State<MyRidesScreen>
     if (confirmed != true || !mounted) return;
 
     try {
-      await _bookingService.cancelBooking(booking.id);
-      if (mounted) {
-        AppSnackbar.show(context, 'Reserva cancelada. Fondos devueltos.');
-        _load();
-      }
+      await ref.read(myRidesProvider.notifier).cancelBooking(booking.id);
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Reserva cancelada. Fondos devueltos.');
     } catch (e) {
-      if (mounted) {
-        AppSnackbar.show(
-          context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos cancelar la reserva.',
-          ),
-          isError: true,
-        );
-      }
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(e,
+            fallback: 'No pudimos cancelar la reserva.'),
+        isError: true,
+      );
     }
   }
 
@@ -221,44 +202,44 @@ class _MyRidesScreenState extends State<MyRidesScreen>
       ),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !mounted) {
+      notesController.dispose();
+      return;
+    }
 
     try {
-      await _bookingService.reportDriverNoShow(
-        booking.id,
-        notes: notesController.text.trim().isEmpty
-            ? null
-            : notesController.text.trim(),
+      await ref.read(myRidesProvider.notifier).reportNoShow(
+            booking.id,
+            notes: notesController.text.trim().isEmpty
+                ? null
+                : notesController.text.trim(),
+          );
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        'Reporte enviado. Se aplico reembolso y evaluacion de strike.',
       );
-      if (mounted) {
-        AppSnackbar.show(
-          context,
-          'Reporte enviado. Se aplico reembolso y evaluacion de strike.',
-        );
-        _load();
-      }
     } catch (e) {
-      if (mounted) {
-        AppSnackbar.show(
-          context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos reportar no-show en este momento.',
-          ),
-          isError: true,
-        );
-      }
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos reportar no-show en este momento.',
+        ),
+        isError: true,
+      );
+    } finally {
+      notesController.dispose();
     }
   }
 
-  List<Booking> get _active =>
-      _bookings.where((b) => b.isReserved).toList();
-
-  List<Booking> get _history =>
-      _bookings.where((b) => !b.isReserved).toList();
-
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(myRidesProvider);
+    final active = state.bookings.where((b) => b.isReserved).toList();
+    final history = state.bookings.where((b) => !b.isReserved).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mis reservas'),
@@ -270,36 +251,32 @@ class _MyRidesScreenState extends State<MyRidesScreen>
           ],
         ),
       ),
-      body: _loading
+      body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  // Active bookings
-                  _active.isEmpty
-                      ? const _EmptyState(
-                          message: 'No tienes reservas activas')
+                  active.isEmpty
+                      ? const _EmptyState(message: 'No tienes reservas activas')
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(vertical: 6),
-                          itemCount: _active.length,
+                          itemCount: active.length,
                           itemBuilder: (ctx, i) => _BookingCard(
-                            booking: _active[i],
+                            booking: active[i],
                             onConfirmBoarding: _confirmBoarding,
                             onCancelBooking: _cancelBooking,
                             onReportNoShow: _reportNoShow,
                           ),
                         ),
-
-                  // History
-                  _history.isEmpty
-                      ? const _EmptyState(message: 'Sin historial aún')
+                  history.isEmpty
+                      ? const _EmptyState(message: 'Sin historial aun')
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(vertical: 6),
-                          itemCount: _history.length,
+                          itemCount: history.length,
                           itemBuilder: (ctx, i) => _BookingCard(
-                            booking: _history[i],
+                            booking: history[i],
                             onConfirmBoarding: null,
                           ),
                         ),
@@ -332,8 +309,7 @@ class _BookingCard extends StatelessWidget {
     ).format(booking.amountTotal);
 
     final dateFmt = booking.rideDepartureAt != null
-        ? DateFormat('EEE d MMM, HH:mm', 'es')
-            .format(booking.rideDepartureAt!)
+        ? DateFormat('EEE d MMM, HH:mm', 'es').format(booking.rideDepartureAt!)
         : '--';
 
     Color statusColor;
@@ -376,19 +352,21 @@ class _BookingCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                    border:
+                        Border.all(color: statusColor.withValues(alpha: 0.4)),
                   ),
                   child: Text(
                     statusLabel,
                     style: TextStyle(
-                        color: statusColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600),
+                      color: statusColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -399,8 +377,6 @@ class _BookingCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text('Monto retenido: $priceFmt',
                 style: const TextStyle(fontSize: 13)),
-
-            // "ME SUBÍ AL AUTO" button only for reserved bookings
             if (booking.isReserved && onConfirmBoarding != null) ...[
               const SizedBox(height: 12),
               SizedBox(
@@ -410,18 +386,14 @@ class _BookingCard extends StatelessWidget {
                   onPressed: () => onConfirmBoarding!(booking),
                   icon: const Icon(Icons.directions_car),
                   label: const Text(
-                    'ME SUBÍ AL AUTO',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w800, fontSize: 14),
+                    'ME SUBI AL AUTO',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2F7D67),
-                  ),
+                      backgroundColor: const Color(0xFF2F7D67)),
                 ),
               ),
             ],
-
-            // Cancel button only for reserved bookings
             if (booking.isReserved && onCancelBooking != null) ...[
               const SizedBox(height: 8),
               SizedBox(
@@ -441,8 +413,9 @@ class _BookingCard extends StatelessWidget {
                 width: double.infinity,
                 height: 40,
                 child: OutlinedButton.icon(
-                  onPressed:
-                      onReportNoShow == null ? null : () => onReportNoShow!(booking),
+                  onPressed: onReportNoShow == null
+                      ? null
+                      : () => onReportNoShow!(booking),
                   icon: const Icon(Icons.warning_amber_outlined),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFFC4871F),
@@ -461,6 +434,7 @@ class _BookingCard extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   final String message;
+
   const _EmptyState({required this.message});
 
   @override
@@ -472,10 +446,7 @@ class _EmptyState extends StatelessWidget {
           Icon(Icons.confirmation_num_outlined,
               size: 64, color: Colors.grey.shade300),
           const SizedBox(height: 12),
-          Text(
-            message,
-            style: const TextStyle(color: Color(0xFF6A7783)),
-          ),
+          Text(message, style: const TextStyle(color: Color(0xFF6A7783))),
         ],
       ),
     );

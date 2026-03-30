@@ -13,6 +13,7 @@
  */
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'core/supabase_client.dart';
 import 'app/app.dart';
@@ -33,7 +34,7 @@ Future<void> main() async {
     return;
   }
 
-  runApp(const TurnoApp());
+  runApp(const ProviderScope(child: TurnoApp()));
 }
 
 class _ConfigurationErrorApp extends StatelessWidget {

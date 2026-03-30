@@ -1,26 +1,28 @@
-# RUNBOOK 5 MIN - TurnoApp
+# RUNBOOK 5 MIN - TurnoApp (Linux/Fedora)
 
-Comandos copy-paste para operar rapido.
+Comandos copy-paste para operar rapido en Linux.
 
 Proyecto Supabase:
 - `zawaevytpkvejhekyokw`
 
 ---
 
-## 1) Levantar app local (Edge)
+## 1) Levantar app local (Chrome)
 
-```powershell
-Set-Location "C:\Users\matia\Desktop\UniRide\uniride-main\turnoapp"
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride/turnoapp"
 flutter pub get
-flutter run -d edge
+flutter run -d chrome \
+  --dart-define=SUPABASE_URL=https://zawaevytpkvejhekyokw.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=TU_ANON_KEY
 ```
 
 ---
 
 ## 2) Aplicar migraciones DB
 
-```powershell
-Set-Location "C:\Users\matia\Desktop\UniRide\uniride-main"
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride"
 supabase login
 supabase link --project-ref zawaevytpkvejhekyokw
 supabase db push
@@ -30,8 +32,8 @@ supabase db push
 
 ## 3) Desplegar Edge Functions
 
-```powershell
-Set-Location "C:\Users\matia\Desktop\UniRide\uniride-main"
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride"
 supabase functions deploy create-topup-intent
 supabase functions deploy mercadopago-webhook
 ```
@@ -45,18 +47,20 @@ Secrets obligatorios en Supabase Dashboard -> Settings -> Edge Functions:
 
 ## 4) Build web release
 
-```powershell
-Set-Location "C:\Users\matia\Desktop\UniRide\uniride-main\turnoapp"
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride/turnoapp"
 flutter analyze
-flutter build web --release
+flutter build web --release \
+  --dart-define=SUPABASE_URL=https://zawaevytpkvejhekyokw.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=TU_ANON_KEY
 ```
 
 ---
 
 ## 5) Deploy rapido Vercel (si aplica)
 
-```powershell
-Set-Location "C:\Users\matia\Desktop\UniRide\uniride-main\turnoapp\build\web"
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride/turnoapp/build/web"
 vercel --prod
 ```
 
@@ -80,18 +84,21 @@ select id, strikes_count, suspended_until, vehicle_suspended_until
 from users_profile
 order by created_at desc
 limit 10;
+
+select * from ops_daily_metrics limit 7;
+select * from wallet_reconciliation_diag(null) limit 20;
 ```
 
 ---
 
 ## 7) Si algo falla (atajo)
 
-- Error `supabase not found`:
-  - instala/actualiza CLI y reabre PowerShell.
+- Error `supabase: command not found`:
+  - instala/actualiza Supabase CLI y reinicia terminal.
 - Error `No pubspec.yaml file found`:
-  - entra a `...\turnoapp` antes de correr `flutter`.
+  - entra a `.../turnoapp` antes de correr `flutter`.
 - Universidades no cargan:
-  - correr `supabase db push` y revisar migraciones 06-09.
+  - correr `supabase db push` y revisar migraciones 06-12.
 
 ---
 
@@ -99,3 +106,4 @@ limit 10;
 
 - `START_HERE_IA.md` (handoff tecnico largo)
 - `CHECKLIST_RELEASE.md` (checklist release)
+- `PLAN_BETA_ESCALABLE.md` (roadmap beta)

@@ -2,9 +2,9 @@
  *
  * Project: TurnoApp
  *
- * Original Concept: Agustín Puelma, Cristobal Cordova, Carlos Ibarra
+ * Original Concept: Agustin Puelma, Cristobal Cordova, Carlos Ibarra
  *
- * Software Architecture & Code: Matías Toledo (catalystxzr)
+ * Software Architecture & Code: Matias Toledo (catalystxzr)
  *
  * Description: Production-grade implementation for UDD carpooling system.
  *
@@ -13,37 +13,32 @@
  */
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import '../../core/error_mapper.dart';
 import '../../models/booking.dart';
-import '../../models/ride.dart';
 import '../../models/enums.dart';
-import '../../services/ride_service.dart';
-import '../../services/booking_service.dart';
+import '../../models/ride.dart';
+import '../../providers/driver_rides_provider.dart';
 import '../../shared/widgets/app_snackbar.dart';
 
-class DriverRidesScreen extends StatefulWidget {
+class DriverRidesScreen extends ConsumerStatefulWidget {
   const DriverRidesScreen({super.key});
 
   @override
-  State<DriverRidesScreen> createState() => _DriverRidesScreenState();
+  ConsumerState<DriverRidesScreen> createState() => _DriverRidesScreenState();
 }
 
-class _DriverRidesScreenState extends State<DriverRidesScreen>
+class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final _rideService = RideService();
-  final _bookingService = BookingService();
-
-  List<Ride> _rides = [];
-  List<Booking> _bookings = [];
-  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _load();
+    Future.microtask(() => ref.read(driverRidesProvider.notifier).load());
   }
 
   @override
@@ -53,31 +48,18 @@ class _DriverRidesScreenState extends State<DriverRidesScreen>
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
     try {
-      final results = await Future.wait([
-        _rideService.getMyRides(),
-        _bookingService.getBookingsForMyRides(),
-      ]);
-      if (mounted) {
-        setState(() {
-          _rides    = results[0] as List<Ride>;
-          _bookings = results[1] as List<Booking>;
-        });
-      }
+      await ref.read(driverRidesProvider.notifier).load();
     } catch (e) {
-      if (mounted) {
-        AppSnackbar.show(
-          context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos cargar tus turnos publicados.',
-          ),
-          isError: true,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos cargar tus turnos publicados.',
+        ),
+        isError: true,
+      );
     }
   }
 
@@ -113,52 +95,51 @@ class _DriverRidesScreenState extends State<DriverRidesScreen>
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8A2F43),
-            ),
+                backgroundColor: const Color(0xFF8A2F43)),
             child: const Text('Cancelar turno'),
           ),
         ],
       ),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !mounted) {
+      reasonController.dispose();
+      return;
+    }
 
     try {
-      await _rideService.cancelRide(
-        ride.id,
-        reason: reasonController.text.trim().isEmpty
-            ? 'cancelled_by_driver'
-            : reasonController.text.trim(),
+      await ref.read(driverRidesProvider.notifier).cancelRide(
+            ride.id,
+            reason: reasonController.text.trim().isEmpty
+                ? 'cancelled_by_driver'
+                : reasonController.text.trim(),
+          );
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        'Turno cancelado. Reembolsos aplicados y strike evaluado.',
       );
-      if (mounted) {
-        AppSnackbar.show(
-          context,
-          'Turno cancelado. Reembolsos aplicados y strike evaluado.',
-        );
-        _load();
-      }
     } catch (e) {
-      if (mounted) {
-        AppSnackbar.show(
-          context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos cancelar el turno en este momento.',
-          ),
-          isError: true,
-        );
-      }
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos cancelar el turno en este momento.',
+        ),
+        isError: true,
+      );
+    } finally {
+      reasonController.dispose();
     }
   }
 
-  List<Ride> get _activeRides =>
-      _rides.where((r) => r.isActive).toList();
-
-  List<Ride> get _pastRides =>
-      _rides.where((r) => !r.isActive).toList();
-
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(driverRidesProvider);
+    final activeRides = state.rides.where((r) => r.isActive).toList();
+    final pastRides = state.rides.where((r) => !r.isActive).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mis turnos'),
@@ -170,43 +151,41 @@ class _DriverRidesScreenState extends State<DriverRidesScreen>
           ],
         ),
       ),
-      body: _loading
+      body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  // Tab 1: rides published by this driver
-                  _activeRides.isEmpty && _pastRides.isEmpty
-                      ? const _EmptyState(message: 'No has publicado turnos aún')
+                  activeRides.isEmpty && pastRides.isEmpty
+                      ? const _EmptyState(
+                          message: 'No has publicado turnos aun')
                       : ListView(
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           children: [
-                            if (_activeRides.isNotEmpty) ...[
+                            if (activeRides.isNotEmpty) ...[
                               const _SectionHeader(title: 'Activos'),
-                              ..._activeRides.map(
+                              ...activeRides.map(
                                 (r) => _RideCard(
                                   ride: r,
                                   onCancel: () => _cancelRide(r),
                                 ),
                               ),
                             ],
-                            if (_pastRides.isNotEmpty) ...[
+                            if (pastRides.isNotEmpty) ...[
                               const _SectionHeader(title: 'Historial'),
-                              ..._pastRides.map((r) => _RideCard(ride: r)),
+                              ...pastRides.map((r) => _RideCard(ride: r)),
                             ],
                           ],
                         ),
-
-                  // Tab 2: passengers booked on this driver's rides
-                  _bookings.isEmpty
+                  state.bookings.isEmpty
                       ? const _EmptyState(message: 'Sin pasajeros registrados')
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(vertical: 6),
-                          itemCount: _bookings.length,
+                          itemCount: state.bookings.length,
                           itemBuilder: (ctx, i) =>
-                              _PassengerBookingCard(booking: _bookings[i]),
+                              _PassengerBookingCard(booking: state.bookings[i]),
                         ),
                 ],
               ),
@@ -215,18 +194,20 @@ class _DriverRidesScreenState extends State<DriverRidesScreen>
   }
 }
 
-// ── Ride card (driver perspective) ─────────────────────────────────────────
-
 class _RideCard extends StatelessWidget {
   final Ride ride;
   final VoidCallback? onCancel;
+
   const _RideCard({required this.ride, this.onCancel});
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt = DateFormat('EEE d MMM, HH:mm', 'es').format(ride.departureAt);
+    final dateFmt =
+        DateFormat('EEE d MMM, HH:mm', 'es').format(ride.departureAt);
     final priceFmt = NumberFormat.currency(
-      locale: 'es_CL', symbol: '\$', decimalDigits: 0,
+      locale: 'es_CL',
+      symbol: '\$',
+      decimalDigits: 0,
     ).format(ride.seatPrice);
 
     Color statusColor;
@@ -257,8 +238,8 @@ class _RideCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     ride.direction == RideDirection.toCampus
-                        ? '${ride.originCommune} → Campus'
-                        : 'Campus → ${ride.originCommune}',
+                        ? '${ride.originCommune} -> Campus'
+                        : 'Campus -> ${ride.originCommune}',
                     style: const TextStyle(
                         fontWeight: FontWeight.w600, fontSize: 15),
                   ),
@@ -316,16 +297,17 @@ class _RideCard extends StatelessWidget {
   }
 }
 
-// ── Passenger booking card (driver perspective) ─────────────────────────────
-
 class _PassengerBookingCard extends StatelessWidget {
   final Booking booking;
+
   const _PassengerBookingCard({required this.booking});
 
   @override
   Widget build(BuildContext context) {
     final priceFmt = NumberFormat.currency(
-      locale: 'es_CL', symbol: '\$', decimalDigits: 0,
+      locale: 'es_CL',
+      symbol: '\$',
+      decimalDigits: 0,
     ).format(booking.amountTotal);
 
     final dateFmt = booking.rideDepartureAt != null
@@ -368,10 +350,8 @@ class _PassengerBookingCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              dateFmt,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF6A7783)),
-            ),
+            Text(dateFmt,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF6A7783))),
             if (booking.passengerVehiclePlate != null ||
                 booking.passengerVehicleModel != null)
               Text(
@@ -390,8 +370,8 @@ class _PassengerBookingCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(priceFmt,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700, fontSize: 14)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
             _StatusBadge(label: statusLabel, color: statusColor),
           ],
         ),
@@ -400,11 +380,10 @@ class _PassengerBookingCard extends StatelessWidget {
   }
 }
 
-// ── Shared helpers ───────────────────────────────────────────────────────────
-
 class _StatusBadge extends StatelessWidget {
   final String label;
   final Color color;
+
   const _StatusBadge({required this.label, required this.color});
 
   @override
@@ -418,8 +397,8 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-            color: color, fontSize: 11, fontWeight: FontWeight.w600),
+        style:
+            TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -427,6 +406,7 @@ class _StatusBadge extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
+
   const _SectionHeader({required this.title});
 
   @override
@@ -435,10 +415,10 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
       child: Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: const Color(0xFF6A7783),
+          color: Color(0xFF6A7783),
           letterSpacing: 0.8,
         ),
       ),
@@ -448,6 +428,7 @@ class _SectionHeader extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   final String message;
+
   const _EmptyState({required this.message});
 
   @override

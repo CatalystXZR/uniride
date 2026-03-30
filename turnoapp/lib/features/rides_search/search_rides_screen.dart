@@ -2,9 +2,9 @@
  *
  * Project: TurnoApp
  *
- * Original Concept: Agustín Puelma, Cristobal Cordova, Carlos Ibarra
+ * Original Concept: Agustin Puelma, Cristobal Cordova, Carlos Ibarra
  *
- * Software Architecture & Code: Matías Toledo (catalystxzr)
+ * Software Architecture & Code: Matias Toledo (catalystxzr)
  *
  * Description: Production-grade implementation for UDD carpooling system.
  *
@@ -13,100 +13,44 @@
  */
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
 import '../../models/enums.dart';
-import '../../models/ride.dart';
-import '../../services/reference_data_service.dart';
-import '../../services/ride_service.dart';
-import '../../shared/widgets/turno_card.dart';
+import '../../providers/search_rides_provider.dart';
 import '../../shared/widgets/app_snackbar.dart';
+import '../../shared/widgets/turno_card.dart';
 
-class SearchRidesScreen extends StatefulWidget {
+class SearchRidesScreen extends ConsumerStatefulWidget {
   const SearchRidesScreen({super.key});
 
   @override
-  State<SearchRidesScreen> createState() => _SearchRidesScreenState();
+  ConsumerState<SearchRidesScreen> createState() => _SearchRidesScreenState();
 }
 
-class _SearchRidesScreenState extends State<SearchRidesScreen> {
-  final _rideService = RideService();
-  final _referenceDataService = ReferenceDataService();
-
-  String? _selectedCommune;
-  String? _selectedDirection;
-  String? _selectedCampusId;
-  DateTime? _selectedDate;
-
-  List<Map<String, dynamic>> _campuses = [];
-  String? _campusesError;
-  bool _loadingCampuses = true;
-  List<Ride> _results = [];
-  bool _loading = false;
-  bool _searched = false;
-
+class _SearchRidesScreenState extends ConsumerState<SearchRidesScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCampuses();
-  }
-
-  Future<void> _loadCampuses() async {
-    if (mounted) {
-      setState(() {
-        _loadingCampuses = true;
-        _campusesError = null;
-      });
-    }
-
-    try {
-      final rows = await _referenceDataService.getCampusesWithUniversity();
-      if (mounted) {
-        setState(() {
-          _campuses = rows;
-          _campusesError = _referenceDataService.lastCallUsedFallback
-              ? 'No se pudo cargar desde Supabase. Se usan datos de referencia locales.'
-              : null;
-          _loadingCampuses = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _loadingCampuses = false;
-          _campusesError =
-              AppErrorMapper.toMessage(e, fallback: 'No se pudo cargar la lista de campus');
-        });
-      }
-    }
+    Future.microtask(
+        () => ref.read(searchRidesProvider.notifier).loadCampuses());
   }
 
   Future<void> _search() async {
-    setState(() {
-      _loading = true;
-      _searched = true;
-    });
     try {
-      _results = await _rideService.searchRides(
-        campusId: _selectedCampusId,
-        originCommune: _selectedCommune,
-        direction: _selectedDirection,
-        date: _selectedDate,
-      );
+      await ref.read(searchRidesProvider.notifier).search();
     } catch (e) {
-      if (mounted) {
-        AppSnackbar.show(
-          context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos buscar turnos ahora. Intenta nuevamente.',
-          ),
-          isError: true,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos buscar turnos ahora. Intenta nuevamente.',
+        ),
+        isError: true,
+      );
     }
   }
 
@@ -118,37 +62,28 @@ class _SearchRidesScreenState extends State<SearchRidesScreen> {
       firstDate: now,
       lastDate: now.add(const Duration(days: 14)),
     );
-    if (picked != null && mounted) {
-      setState(() => _selectedDate = picked);
-      _search();
-    }
-  }
-
-  void _clearFilters() {
-    setState(() {
-      _selectedCommune = null;
-      _selectedDirection = null;
-      _selectedCampusId = null;
-      _selectedDate = null;
-      _results = [];
-      _searched = false;
-    });
+    if (picked == null) return;
+    ref.read(searchRidesProvider.notifier).setDate(picked);
+    await _search();
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasAnyFilter = _selectedCommune != null ||
-        _selectedDirection != null ||
-        _selectedCampusId != null ||
-        _selectedDate != null;
+    final state = ref.watch(searchRidesProvider);
+    final notifier = ref.read(searchRidesProvider.notifier);
+
+    final hasAnyFilter = state.selectedCommune != null ||
+        state.selectedDirection != null ||
+        state.selectedCampusId != null ||
+        state.selectedDate != null;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Buscar turnos'),
         actions: [
-          if (_searched || hasAnyFilter)
+          if (state.searched || hasAnyFilter)
             TextButton(
-              onPressed: _clearFilters,
+              onPressed: notifier.clearFilters,
               child: const Text('Limpiar'),
             ),
         ],
@@ -180,28 +115,33 @@ class _SearchRidesScreenState extends State<SearchRidesScreen> {
                   children: [
                     _FilterChipDropdown<String>(
                       label: 'Comuna',
-                      value: _selectedCommune,
+                      value: state.selectedCommune,
                       items: AppConstants.allowedCommunes
-                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                          .map(
+                              (c) => DropdownMenuItem(value: c, child: Text(c)))
                           .toList(),
-                      onChanged: (v) {
-                        setState(() => _selectedCommune = v);
-                        _search();
+                      onChanged: (v) async {
+                        notifier.setCommune(v);
+                        await _search();
                       },
                     ),
                     _FilterChipDropdown<String>(
                       label: 'Direccion',
-                      value: _selectedDirection,
+                      value: state.selectedDirection,
                       items: const [
-                        DropdownMenuItem(value: 'to_campus', child: Text('Hacia campus')),
-                        DropdownMenuItem(value: 'from_campus', child: Text('Desde campus')),
+                        DropdownMenuItem(
+                            value: 'to_campus', child: Text('Hacia campus')),
+                        DropdownMenuItem(
+                          value: 'from_campus',
+                          child: Text('Desde campus'),
+                        ),
                       ],
-                      onChanged: (v) {
-                        setState(() => _selectedDirection = v);
-                        _search();
+                      onChanged: (v) async {
+                        notifier.setDirection(v);
+                        await _search();
                       },
                     ),
-                    _campusesError != null
+                    state.campusesError != null
                         ? ActionChip(
                             avatar: const Icon(
                               Icons.error_outline,
@@ -209,12 +149,14 @@ class _SearchRidesScreenState extends State<SearchRidesScreen> {
                               color: Color(0xFF8A2F43),
                             ),
                             label: const Text('Reintentar campus'),
-                            onPressed: _loadCampuses,
+                            onPressed: notifier.loadCampuses,
                           )
                         : _FilterChipDropdown<String>(
-                            label: _loadingCampuses ? 'Cargando campus...' : 'Campus',
-                            value: _selectedCampusId,
-                            items: _campuses
+                            label: state.loadingCampuses
+                                ? 'Cargando campus...'
+                                : 'Campus',
+                            value: state.selectedCampusId,
+                            items: state.campuses
                                 .map(
                                   (c) => DropdownMenuItem(
                                     value: c['id'] as String,
@@ -225,22 +167,22 @@ class _SearchRidesScreenState extends State<SearchRidesScreen> {
                                   ),
                                 )
                                 .toList(),
-                            onChanged: _loadingCampuses
+                            onChanged: state.loadingCampuses
                                 ? (_) {}
-                                : (v) {
-                                    setState(() => _selectedCampusId = v);
-                                    _search();
+                                : (v) async {
+                                    notifier.setCampus(v);
+                                    await _search();
                                   },
                           ),
                     ActionChip(
                       label: Text(
-                        _selectedDate != null
-                            ? '${_selectedDate!.day}/${_selectedDate!.month}'
+                        state.selectedDate != null
+                            ? '${state.selectedDate!.day}/${state.selectedDate!.month}'
                             : 'Fecha',
                       ),
                       avatar: const Icon(Icons.calendar_today, size: 16),
                       onPressed: _pickDate,
-                      backgroundColor: _selectedDate != null
+                      backgroundColor: state.selectedDate != null
                           ? Theme.of(context).colorScheme.primaryContainer
                           : null,
                     ),
@@ -250,17 +192,17 @@ class _SearchRidesScreenState extends State<SearchRidesScreen> {
             ),
           ),
           Expanded(
-            child: _loading
+            child: state.loading
                 ? const Center(child: CircularProgressIndicator())
-                : !_searched
+                : !state.searched
                     ? _EmptyState(onSearch: _search)
-                    : _results.isEmpty
+                    : state.results.isEmpty
                         ? const _NoResults()
                         : ListView.builder(
                             padding: const EdgeInsets.only(top: 2, bottom: 90),
-                            itemCount: _results.length,
+                            itemCount: state.results.length,
                             itemBuilder: (context, i) {
-                              final ride = _results[i];
+                              final ride = state.results[i];
                               return TurnoCard(
                                 originCommune: ride.originCommune,
                                 universityName: ride.universityName ?? '',
@@ -268,22 +210,24 @@ class _SearchRidesScreenState extends State<SearchRidesScreen> {
                                 campusName: ride.campusName ?? '',
                                 meetingPoint: ride.meetingPoint,
                                 departureAt: ride.departureAt,
-                                direction: ride.direction == RideDirection.toCampus
-                                    ? 'to_campus'
-                                    : 'from_campus',
+                                direction:
+                                    ride.direction == RideDirection.toCampus
+                                        ? 'to_campus'
+                                        : 'from_campus',
                                 seatsAvailable: ride.seatsAvailable,
                                 seatPrice: ride.seatPrice,
                                 platformFee: ride.platformFee,
                                 driverNetAmount: ride.driverNetAmount,
                                 isRadial: ride.isRadial,
-                                onTap: () => context.push('/booking/${ride.id}'),
+                                onTap: () =>
+                                    context.push('/booking/${ride.id}'),
                               );
                             },
                           ),
           ),
         ],
       ),
-      floatingActionButton: !_searched
+      floatingActionButton: !state.searched
           ? FloatingActionButton.extended(
               onPressed: _search,
               icon: const Icon(Icons.search),
@@ -307,8 +251,6 @@ class _FilterChipDropdown<T> extends StatelessWidget {
     required this.onChanged,
   });
 
-  /// Returns the display text for the currently selected value,
-  /// or the placeholder [label] if nothing is selected.
   String get _displayLabel {
     if (value == null) return label;
     final match = items.where((i) => i.value == value).firstOrNull;
@@ -323,10 +265,7 @@ class _FilterChipDropdown<T> extends StatelessWidget {
     return PopupMenuButton<T>(
       onSelected: (v) => onChanged(v),
       itemBuilder: (_) => items
-          .map((item) => PopupMenuItem(
-                value: item.value,
-                child: item.child,
-              ))
+          .map((item) => PopupMenuItem(value: item.value, child: item.child))
           .toList(),
       child: Chip(
         label: Text(_displayLabel),
@@ -342,7 +281,8 @@ class _FilterChipDropdown<T> extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  final VoidCallback onSearch;
+  final Future<void> Function() onSearch;
+
   const _EmptyState({required this.onSearch});
 
   @override
@@ -375,17 +315,17 @@ class _NoResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.directions_car_outlined,
             size: 64,
             color: Color(0xFF6A7783),
           ),
-          const SizedBox(height: 12),
-          const Text(
+          SizedBox(height: 12),
+          Text(
             'No hay turnos disponibles\ncon estos filtros',
             textAlign: TextAlign.center,
             style: TextStyle(color: Color(0xFF6A7783)),

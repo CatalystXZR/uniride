@@ -13,6 +13,7 @@ Construida como **Flutter Web PWA** con backend en **Supabase**.
 | Frontend | Flutter 3.29+ (Web PWA) |
 | Backend | Supabase (Postgres + Auth + Edge Functions) |
 | Navegación | go_router 13 |
+| Estado frontend | Riverpod |
 | Pagos | Mercado Pago Checkout Pro |
 | Fuente | Google Fonts — Inter |
 | Deploy frontend | Vercel |
@@ -54,6 +55,7 @@ uniride/
 │       ├── core/              # Constantes + cliente Supabase
 │       ├── models/            # Ride, Booking, Wallet, UserProfile, Enums
 │       ├── services/          # Auth, Profile, Ride, Booking, Wallet, Withdrawal
+│       ├── providers/         # Estado global (Riverpod)
 │       └── features/
 │           ├── auth/          # Login, Registro
 │           ├── profile_switch/# Home (switch conductor/pasajero)
@@ -63,7 +65,7 @@ uniride/
 │           ├── wallet/        # Billetera y recargas
 │           └── my_rides/      # Mis reservas (pasajero) + Mis turnos (conductor)
 └── supabase/
-    ├── migrations/            # 8 migraciones en orden
+    ├── migrations/            # 13 migraciones en orden
     └── functions/
         ├── create-topup-intent/   # Crea preferencia Mercado Pago
         └── mercadopago-webhook/   # Recibe y verifica pagos de MP
@@ -112,7 +114,7 @@ flutter build web --release \
 
 ## Base de datos
 
-8 migraciones en `supabase/migrations/`:
+13 migraciones en `supabase/migrations/`:
 
 | # | Archivo | Contenido |
 |---|---|---|
@@ -124,6 +126,11 @@ flutter build web --release \
 | 05 | `_webhook_rpc.sql` | RPC `credit_wallet_topup` |
 | 06 | `_public_grants.sql` | `GRANT SELECT` en tablas públicas al rol `anon` |
 | 07 | `_reference_rls.sql` | RLS + política pública en `universities` y `campuses` |
+| 08 | `_reference_diag.sql` | Diagnóstico de acceso a referencias |
+| 09 | `_compliance_pricing_strikes.sql` | Pricing, compliance y strikes |
+| 10 | `_profile_photos_storage.sql` | Storage público de fotos de perfil |
+| 11 | `_driver_vehicle_required.sql` | Reglas obligatorias para datos de vehículo |
+| 12 | `_beta_observability_scalability.sql` | Índices beta + métricas + conciliación wallet |
 
 Para aplicar:
 ```bash
@@ -143,4 +150,3 @@ supabase db push
 - Los fondos del pasajero quedan **retenidos** al reservar y se **liberan al conductor** solo cuando el pasajero confirma el abordaje
 
 ---
-
