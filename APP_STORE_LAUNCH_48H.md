@@ -25,7 +25,7 @@ Segun App Review Guidelines y guias de Apple Developer:
 ## 3) Checklist tecnico antes de subir
 
 ## Backend
-- [ ] `supabase db push` aplicado hasta migracion 13
+- [ ] `supabase db push` aplicado hasta migracion 14
 - [ ] `create-topup-intent` desplegada
 - [ ] `mercadopago-webhook` desplegada
 - [ ] `create-stripe-topup-session` desplegada
@@ -34,7 +34,7 @@ Segun App Review Guidelines y guias de Apple Developer:
 - [ ] Secrets configurados
 
 Secrets minimos:
-- `PAYMENT_PROVIDER=mercadopago` (lanzamiento inmediato)
+- `PAYMENT_PROVIDER=disabled` (modo seguro sin pasarela) o `mercadopago` para cobro real
 - `MP_ACCESS_TOKEN`
 - `MP_WEBHOOK_SECRET`
 - `APP_BASE_URL`
@@ -62,6 +62,7 @@ Secrets minimos:
 7. Recarga wallet con 1% fee (cobro bruto, credito neto)
 8. Solicitud retiro
 9. Eliminar cuenta desde perfil
+10. Flujo despacho: aceptar -> en camino -> llego -> abordar -> iniciar -> finalizar
 
 ## 5) Trabajo en Mac (persona no tecnica)
 

@@ -14,7 +14,7 @@ Construida como **Flutter Web PWA** con backend en **Supabase**.
 | Backend | Supabase (Postgres + Auth + Edge Functions) |
 | Navegación | go_router 13 |
 | Estado frontend | Riverpod |
-| Pagos | Stripe-ready API + Mercado Pago fallback |
+| Pagos | Provider-aware (disabled, Mercado Pago, Stripe-ready) |
 | Fuente | Google Fonts — Inter |
 | Deploy frontend | Vercel |
 | Deploy backend | Supabase Cloud |
@@ -30,12 +30,13 @@ Registro
 Home
   ├─ Modo Conductor
   │   ├─ Publicar turno
-  │   └─ Ver mis turnos + pasajeros
+  │   └─ Ver mis turnos + pasajeros (aceptar, en camino, llego, iniciar, finalizar)
   └─ Modo Pasajero
       ├─ Buscar turnos (filtros: comuna, campus, dirección, fecha)
       ├─ Reservar (fondos retenidos atómicamente en la DB)
-      ├─ "ME SUBÍ AL AUTO" → pago liberado al conductor
-      └─ Cancelar reserva → reembolso inmediato
+      ├─ Seguir viaje activo (aceptado, en camino, llego, abordaje, en curso)
+      ├─ Confirmar abordaje cuando sube al auto
+      └─ Cancelar/no-show dentro de ventanas válidas
 
 Billetera
   ├─ Recargar (monto neto + 1% fee de procesamiento)
@@ -65,7 +66,7 @@ uniride/
 │           ├── wallet/        # Billetera y recargas
 │           └── my_rides/      # Mis reservas (pasajero) + Mis turnos (conductor)
 └── supabase/
-    ├── migrations/            # 14 migraciones en orden
+    ├── migrations/            # 15 migraciones en orden
     └── functions/
         ├── create-topup-intent/        # Crea intención de recarga (provider-aware)
         ├── mercadopago-webhook/        # Webhook MP
@@ -92,7 +93,7 @@ flutter build web --release \
 | `MP_ACCESS_TOKEN` | Access token de Mercado Pago (`APP_USR-...`) |
 | `APP_BASE_URL` | URL pública de la app, ej: `https://turnoapp.vercel.app` |
 | `MP_WEBHOOK_SECRET` | Secret del webhook de MP para verificación HMAC |
-| `PAYMENT_PROVIDER` | `mercadopago` o `stripe` |
+| `PAYMENT_PROVIDER` | `disabled`, `mercadopago` o `stripe` |
 | `STRIPE_PUBLISHABLE_KEY` | Publishable key Stripe (cuando se conecte) |
 | `STRIPE_WEBHOOK_SECRET` | Secret de firma Stripe webhook |
 
@@ -119,7 +120,7 @@ flutter build web --release \
 
 ## Base de datos
 
-14 migraciones en `supabase/migrations/`:
+15 migraciones en `supabase/migrations/`:
 
 | # | Archivo | Contenido |
 |---|---|---|
@@ -137,6 +138,7 @@ flutter build web --release \
 | 11 | `_driver_vehicle_required.sql` | Reglas obligatorias para datos de vehículo |
 | 12 | `_beta_observability_scalability.sql` | Índices beta + métricas + conciliación wallet |
 | 13 | `_launch_pricing_stripe_ready.sql` | Comisión fija CLP 190 + topup fee-aware + Stripe-ready |
+| 14 | `_dispatch_hardening.sql` | Anti-bypass RLS + máquina de estado despacho + RPCs conductor/pasajero |
 
 Para aplicar:
 ```bash
@@ -156,7 +158,8 @@ supabase db push
 - Retiro mínimo: **$20.000 CLP** (procesado manualmente, quincenal)
 - Comisión de plataforma fija: **$190 CLP por asiento**
 - Recargas billetera: **fee 1%** (ej. pides 10.000 -> pagas 10.100 -> wallet +10.000)
-- Los fondos del pasajero quedan **retenidos** al reservar y se **liberan al conductor** solo cuando el pasajero confirma el abordaje
+- Los fondos del pasajero quedan **retenidos** al reservar y se **liberan al conductor** cuando conductor finaliza viaje (flujo de despacho)
+- Estados de despacho de reserva: `reserved`, `accepted`, `driver_arriving`, `driver_arrived`, `passenger_boarded`, `in_progress`, `completed`, `cancelled`, `no_show`
 
 ---
 

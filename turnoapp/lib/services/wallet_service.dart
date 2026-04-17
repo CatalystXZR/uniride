@@ -72,6 +72,10 @@ class WalletService {
 
     final data = response.data as Map<String, dynamic>;
 
+    if ((data['status'] as String?) == 'disabled') {
+      throw Exception('payment_provider_disabled');
+    }
+
     final provider = (data['provider'] as String?)?.trim();
     if (provider == 'stripe' && data['status'] == 'provider_not_connected') {
       throw Exception(

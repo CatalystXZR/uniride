@@ -35,6 +35,43 @@ class BookingService {
     });
   }
 
+  Future<void> driverAcceptBooking(String bookingId) async {
+    await _client.rpc('driver_accept_booking', params: {
+      'p_booking_id': bookingId,
+    });
+  }
+
+  Future<void> driverRejectBooking(String bookingId, {String? reason}) async {
+    await _client.rpc('driver_reject_booking', params: {
+      'p_booking_id': bookingId,
+      'p_reason': reason,
+    });
+  }
+
+  Future<void> driverMarkArriving(String bookingId) async {
+    await _client.rpc('driver_mark_arriving', params: {
+      'p_booking_id': bookingId,
+    });
+  }
+
+  Future<void> driverMarkArrived(String bookingId) async {
+    await _client.rpc('driver_mark_arrived', params: {
+      'p_booking_id': bookingId,
+    });
+  }
+
+  Future<void> driverStartTrip(String bookingId) async {
+    await _client.rpc('driver_start_trip', params: {
+      'p_booking_id': bookingId,
+    });
+  }
+
+  Future<void> driverCompleteTrip(String bookingId) async {
+    await _client.rpc('driver_complete_trip', params: {
+      'p_booking_id': bookingId,
+    });
+  }
+
   /// Calls the `cancel_booking` Postgres RPC.
   /// Refunds held funds to the passenger and increments available seats.
   Future<void> cancelBooking(String bookingId) async {
@@ -61,10 +98,19 @@ class BookingService {
         .select('''
           *,
           rides!ride_id(
+            driver_id,
             origin_commune,
             departure_at,
             universities!university_id(name),
-            campuses!campus_id(name)
+            campuses!campus_id(name),
+            users_profile!driver_id(
+              full_name,
+              rating_avg,
+              profile_photo_url,
+              vehicle_plate,
+              vehicle_model,
+              emergency_contact
+            )
           ),
           users_profile!passenger_id(
             full_name,
@@ -83,8 +129,8 @@ class BookingService {
       final ride = row['rides'] as Map?;
       flat['ride_origin_commune'] = ride?['origin_commune'];
       flat['ride_departure_at'] = ride?['departure_at'];
-      flat['university_name'] =
-          (ride?['universities'] as Map?)?['name'];
+      flat['driver_id'] = ride?['driver_id'];
+      flat['university_name'] = (ride?['universities'] as Map?)?['name'];
       flat['campus_name'] = (ride?['campuses'] as Map?)?['name'];
       final passenger = row['users_profile'] as Map?;
       flat['passenger_name'] = passenger?['full_name'];
@@ -92,6 +138,13 @@ class BookingService {
       flat['passenger_photo_url'] = passenger?['profile_photo_url'];
       flat['passenger_vehicle_plate'] = passenger?['vehicle_plate'];
       flat['passenger_vehicle_model'] = passenger?['vehicle_model'];
+      final driver = (ride?['users_profile'] as Map?);
+      flat['driver_name'] = driver?['full_name'];
+      flat['driver_rating'] = driver?['rating_avg'];
+      flat['driver_photo_url'] = driver?['profile_photo_url'];
+      flat['driver_vehicle_plate'] = driver?['vehicle_plate'];
+      flat['driver_vehicle_model'] = driver?['vehicle_model'];
+      flat['driver_emergency_contact'] = driver?['emergency_contact'];
       return Booking.fromJson(flat);
     }).toList();
   }
@@ -102,10 +155,8 @@ class BookingService {
     final uid = _client.auth.currentUser!.id;
 
     // Step 1: get all ride IDs owned by this driver
-    final rideRows = await _client
-        .from('rides')
-        .select('id')
-        .eq('driver_id', uid);
+    final rideRows =
+        await _client.from('rides').select('id').eq('driver_id', uid);
 
     if (rideRows.isEmpty) return [];
 
@@ -117,6 +168,7 @@ class BookingService {
         .select('''
           *,
           rides!ride_id(origin_commune, departure_at,
+            driver_id,
             universities!university_id(name),
             campuses!campus_id(name)
           ),
@@ -136,9 +188,10 @@ class BookingService {
       final flat = Map<String, dynamic>.from(row);
       final ride = row['rides'] as Map?;
       flat['ride_origin_commune'] = ride?['origin_commune'];
-      flat['ride_departure_at']   = ride?['departure_at'];
-      flat['university_name']     = (ride?['universities'] as Map?)?['name'];
-      flat['campus_name']         = (ride?['campuses'] as Map?)?['name'];
+      flat['ride_departure_at'] = ride?['departure_at'];
+      flat['driver_id'] = ride?['driver_id'];
+      flat['university_name'] = (ride?['universities'] as Map?)?['name'];
+      flat['campus_name'] = (ride?['campuses'] as Map?)?['name'];
       final passenger = row['users_profile'] as Map?;
       flat['passenger_name'] = passenger?['full_name'];
       flat['passenger_rating'] = passenger?['rating_avg'];

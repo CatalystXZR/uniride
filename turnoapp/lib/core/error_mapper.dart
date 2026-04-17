@@ -81,6 +81,32 @@ class AppErrorMapper {
       return 'Aun no pasan los 10 minutos de espera. Intenta reportar mas tarde.';
     }
 
+    if (text.contains('p0010') || text.contains('ride_departed')) {
+      return 'Este turno ya comenzo o ya salio.';
+    }
+
+    if (text.contains('p0011') ||
+        text.contains('invalid_dispatch_transition') ||
+        text.contains('booking_not_active') ||
+        text.contains('cannot_cancel_started_trip') ||
+        text.contains('passenger_not_boarded')) {
+      return 'No puedes ejecutar esa accion en el estado actual del viaje.';
+    }
+
+    if (text.contains('p0012') || text.contains('held_balance_mismatch')) {
+      return 'Detectamos una inconsistencia de saldo retenido. Intenta actualizar.';
+    }
+
+    if (text.contains('p0013') ||
+        text.contains('report_window_expired') ||
+        text.contains('cancel_window_expired')) {
+      return 'La ventana para esta accion ya expiro.';
+    }
+
+    if (text.contains('cannot_book_own_ride')) {
+      return 'No puedes reservar un turno que publicaste tu mismo.';
+    }
+
     if (text.contains('terms_not_accepted')) {
       return 'Debes aceptar terminos y condiciones para continuar.';
     }
@@ -104,6 +130,10 @@ class AppErrorMapper {
     if (text.contains('payment provider error') ||
         text.contains('payment_provider_error')) {
       return 'El proveedor de pagos no respondio. Intenta nuevamente.';
+    }
+
+    if (text.contains('payment_provider_disabled')) {
+      return 'Las recargas estan temporalmente deshabilitadas. Vuelve a intentar mas tarde.';
     }
 
     if (text.contains('provider_not_connected') ||

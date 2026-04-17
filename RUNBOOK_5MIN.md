@@ -45,7 +45,7 @@ Secrets obligatorios en Supabase Dashboard -> Settings -> Edge Functions:
 - `MP_ACCESS_TOKEN`
 - `APP_BASE_URL`
 - `MP_WEBHOOK_SECRET`
-- `PAYMENT_PROVIDER` (`mercadopago` o `stripe`)
+- `PAYMENT_PROVIDER` (`disabled`, `mercadopago` o `stripe`)
 
 Stripe-ready (cuando se conecte):
 - `STRIPE_PUBLISHABLE_KEY`
@@ -95,6 +95,22 @@ limit 10;
 
 select * from ops_daily_metrics limit 7;
 select * from wallet_reconciliation_diag(null) limit 20;
+
+select dispatch_status, count(*)
+from bookings
+group by dispatch_status
+order by dispatch_status;
+
+select proname, pg_get_function_identity_arguments(p.oid) as args
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname='public'
+  and proname in (
+    'driver_accept_booking','driver_mark_arriving','driver_mark_arrived',
+    'driver_start_trip','driver_complete_trip','driver_reject_booking',
+    'expire_past_active_rides'
+  )
+order by proname;
 ```
 
 ---

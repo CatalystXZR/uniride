@@ -519,7 +519,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           _ActionButton(
                             icon: Icons.confirmation_num_outlined,
                             label: 'Mis reservas',
-                            subtitle: 'Confirma abordaje o revisa historial',
+                            subtitle:
+                                'Sigue el estado del viaje y revisa historial',
                             color: const Color(0xFF365D74),
                             onTap: () => context.push('/my-rides'),
                           ),

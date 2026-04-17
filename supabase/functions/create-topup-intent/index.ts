@@ -25,7 +25,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const APP_BASE_URL = Deno.env.get("APP_BASE_URL") ?? "https://turnoapp.cl";
 
-const SUPPORTED_PAYMENT_PROVIDERS = new Set(["mercadopago", "stripe"]);
+const SUPPORTED_PAYMENT_PROVIDERS = new Set(["mercadopago", "stripe", "disabled"]);
 const PAYMENT_PROVIDER_RAW = (Deno.env.get("PAYMENT_PROVIDER") ?? "mercadopago").toLowerCase();
 const PAYMENT_PROVIDER = SUPPORTED_PAYMENT_PROVIDERS.has(PAYMENT_PROVIDER_RAW)
   ? PAYMENT_PROVIDER_RAW
@@ -196,6 +196,21 @@ function createStripeStub(params: {
   };
 }
 
+function createDisabledResponse(params: {
+  amountRequested: number;
+  amountCharged: number;
+}) {
+  const { amountRequested, amountCharged } = params;
+  return {
+    provider: "disabled",
+    status: "disabled",
+    message: "Recargas temporalmente deshabilitadas hasta configurar credenciales del proveedor.",
+    amount_requested: amountRequested,
+    fee_amount: topupFee(amountRequested),
+    amount_charged: amountCharged,
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -251,6 +266,14 @@ serve(async (req) => {
         userId: user.id,
       });
       return jsonResponse(stripeStub, 200);
+    }
+
+    if (PAYMENT_PROVIDER === "disabled") {
+      const disabledResponse = createDisabledResponse({
+        amountRequested,
+        amountCharged,
+      });
+      return jsonResponse(disabledResponse, 200);
     }
 
     const mpIntent = await createMercadoPagoIntent({

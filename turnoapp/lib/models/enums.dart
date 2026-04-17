@@ -16,6 +16,18 @@ enum RoleMode { passenger, driver }
 
 enum BookingStatus { reserved, cancelled, completed, noShow }
 
+enum BookingDispatchStatus {
+  reserved,
+  accepted,
+  driverArriving,
+  driverArrived,
+  passengerBoarded,
+  inProgress,
+  completed,
+  cancelled,
+  noShow,
+}
+
 enum RideDirection { toCampus, fromCampus }
 
 enum TxType {
