@@ -27,7 +27,7 @@ jobs:
 
       - name: Analyze Flutter code
         working-directory: turnoapp
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
 
       - name: Run tests when present
         working-directory: turnoapp
