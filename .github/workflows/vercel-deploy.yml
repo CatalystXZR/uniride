@@ -7,6 +7,7 @@ on:
     paths:
       - "turnoapp/**"
       - ".github/workflows/vercel-deploy.yml"
+  workflow_dispatch:
 
 jobs:
   deploy:
