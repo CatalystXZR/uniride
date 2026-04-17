@@ -101,8 +101,14 @@ class AppErrorMapper {
       return 'El monto maximo por recarga es de \$200.000 CLP.';
     }
 
-    if (text.contains('payment provider error')) {
+    if (text.contains('payment provider error') ||
+        text.contains('payment_provider_error')) {
       return 'El proveedor de pagos no respondio. Intenta nuevamente.';
+    }
+
+    if (text.contains('provider_not_connected') ||
+        text.contains('not_implemented')) {
+      return 'El proveedor de pagos seleccionado aun no esta habilitado.';
     }
 
     return fallback;

@@ -36,12 +36,20 @@ supabase db push
 cd "/home/catalystxzr/Escritorio/PERSONAL/uniride"
 supabase functions deploy create-topup-intent
 supabase functions deploy mercadopago-webhook
+supabase functions deploy create-stripe-topup-session
+supabase functions deploy stripe-webhook
+supabase functions deploy delete-account
 ```
 
 Secrets obligatorios en Supabase Dashboard -> Settings -> Edge Functions:
 - `MP_ACCESS_TOKEN`
 - `APP_BASE_URL`
 - `MP_WEBHOOK_SECRET`
+- `PAYMENT_PROVIDER` (`mercadopago` o `stripe`)
+
+Stripe-ready (cuando se conecte):
+- `STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_WEBHOOK_SECRET`
 
 ---
 

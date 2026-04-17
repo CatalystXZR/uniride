@@ -19,11 +19,11 @@ class AppConstants {
   // Pricing
   static const int seatPriceCLP = 2000;
   static const int seatPricePremiumCLP = 2500;
-  static const double platformFeePct = 0.1425;
-  static const double platformFeePctRadial = 0.1525;
+  static const int platformFeeFixedCLP = 190;
   static const int minWithdrawalCLP = 20000;
   static const int minTopupCLP = 2000;
   static const int maxTopupCLP = 200000;
+  static const double topupFeePct = 0.01;
   static const List<int> quickTopupAmountsCLP = [
     2000,
     4000,
@@ -67,18 +67,23 @@ class AppConstants {
   }
 
   static int seatPriceForUniversityCode(String? code) {
-    return isPremiumUniversityCode(code)
-        ? seatPricePremiumCLP
-        : seatPriceCLP;
+    return isPremiumUniversityCode(code) ? seatPricePremiumCLP : seatPriceCLP;
   }
 
   static int platformFeeForAmount(int amount, {required bool isRadial}) {
-    final pct = isRadial ? platformFeePctRadial : platformFeePct;
-    return (amount * pct).round();
+    return platformFeeFixedCLP;
   }
 
   static int driverNetForAmount(int amount, {required bool isRadial}) {
     return amount - platformFeeForAmount(amount, isRadial: isRadial);
+  }
+
+  static int topupFeeForAmount(int requestedAmount) {
+    return (requestedAmount * topupFeePct).round();
+  }
+
+  static int topupChargedAmount(int requestedAmount) {
+    return requestedAmount + topupFeeForAmount(requestedAmount);
   }
 
   // Fallback reference data with fixed UUIDs from seed migration.

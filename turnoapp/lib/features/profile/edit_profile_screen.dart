@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/error_mapper.dart';
+import '../../services/auth_service.dart';
 import '../../services/profile_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/loading_overlay.dart';
@@ -18,6 +19,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _profileService = ProfileService();
+  final _authService = AuthService();
   final _picker = ImagePicker();
 
   final _fullNameController = TextEditingController();
@@ -34,6 +36,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _hasValidLicense = false;
   bool _loading = true;
   bool _saving = false;
+  bool _deleting = false;
 
   String? _existingPhotoUrl;
   Uint8List? _selectedPhotoBytes;
@@ -260,8 +263,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     return LoadingOverlay(
-      isLoading: _saving,
-      message: 'Guardando perfil...',
+      isLoading: _saving || _deleting,
+      message: _deleting ? 'Eliminando cuenta...' : 'Guardando perfil...',
       child: Scaffold(
         appBar: AppBar(title: const Text('Editar perfil')),
         body: _loading
@@ -458,6 +461,45 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    Card(
+                      color: const Color(0xFFFDF4F6),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Privacidad y cuenta',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Puedes solicitar la eliminacion completa de tu cuenta y datos personales desde aqui.',
+                              style: TextStyle(
+                                color: Color(0xFF6A7783),
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            OutlinedButton.icon(
+                              onPressed:
+                                  _deleting ? null : _confirmDeleteAccount,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF8A2F43),
+                                side:
+                                    const BorderSide(color: Color(0xFF8A2F43)),
+                              ),
+                              icon: const Icon(Icons.delete_forever_outlined),
+                              label: const Text('Eliminar mi cuenta'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -471,5 +513,79 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar cuenta'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Esta accion eliminara tu cuenta y datos asociados de TurnoApp.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Motivo (opcional)',
+                hintText: 'Ej: deje de usar la app',
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8A2F43),
+            ),
+            child: const Text('Eliminar definitivamente'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      reasonController.dispose();
+      return;
+    }
+
+    setState(() => _deleting = true);
+    try {
+      await _authService.deleteMyAccount(
+        reason: reasonController.text.trim().isEmpty
+            ? null
+            : reasonController.text.trim(),
+      );
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        'Tu cuenta fue eliminada correctamente.',
+      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos eliminar tu cuenta en este momento.',
+        ),
+        isError: true,
+      );
+    } finally {
+      reasonController.dispose();
+      if (mounted) setState(() => _deleting = false);
+    }
   }
 }
