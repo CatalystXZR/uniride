@@ -25,7 +25,7 @@ Segun App Review Guidelines y guias de Apple Developer:
 ## 3) Checklist tecnico antes de subir
 
 ## Backend
-- [ ] `supabase db push` aplicado hasta migracion 14
+- [ ] `supabase db push` aplicado hasta migracion 15
 - [ ] `create-topup-intent` desplegada
 - [ ] `mercadopago-webhook` desplegada
 - [ ] `create-stripe-topup-session` desplegada

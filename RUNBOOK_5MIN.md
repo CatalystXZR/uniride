@@ -131,3 +131,27 @@ order by proname;
 - `START_HERE_IA.md` (handoff tecnico largo)
 - `CHECKLIST_RELEASE.md` (checklist release)
 - `PLAN_BETA_ESCALABLE.md` (roadmap beta)
+
+---
+
+## 9) Rollback rapido (git)
+
+Referencias creadas para volver al estado estable pre-despacho:
+- branch backup: `backup/main-before-dispatch-origin-be3ca77`
+- tag estable: `stable-pre-dispatch-be3ca77`
+
+Comandos de verificacion:
+
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride"
+git fetch --all --tags
+git show --no-patch stable-pre-dispatch-be3ca77
+git show --no-patch origin/backup/main-before-dispatch-origin-be3ca77
+```
+
+Si necesitas recrear una rama de rollback desde el tag:
+
+```bash
+cd "/home/catalystxzr/Escritorio/PERSONAL/uniride"
+git checkout -b rollback/stable-pre-dispatch stable-pre-dispatch-be3ca77
+```

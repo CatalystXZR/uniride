@@ -139,6 +139,7 @@ flutter build web --release \
 | 12 | `_beta_observability_scalability.sql` | Índices beta + métricas + conciliación wallet |
 | 13 | `_launch_pricing_stripe_ready.sql` | Comisión fija CLP 190 + topup fee-aware + Stripe-ready |
 | 14 | `_dispatch_hardening.sql` | Anti-bypass RLS + máquina de estado despacho + RPCs conductor/pasajero |
+| 15 | `_wallet_reconciliation_adjustment.sql` | Ajuste conciliación wallet/ledger para delta usuarios en cero |
 
 Para aplicar:
 ```bash
