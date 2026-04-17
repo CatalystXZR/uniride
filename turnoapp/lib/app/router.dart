@@ -26,6 +26,7 @@ import '../features/booking/booking_screen.dart';
 import '../features/wallet/wallet_screen.dart';
 import '../features/my_rides/my_rides_screen.dart';
 import '../features/my_rides/driver_rides_screen.dart';
+import '../features/my_rides/active_trip_screen.dart';
 import '../features/legal/terms_screen.dart';
 import '../features/profile/edit_profile_screen.dart';
 
@@ -63,6 +64,11 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(path: '/wallet', builder: (_, __) => const WalletScreen()),
     GoRoute(path: '/my-rides', builder: (_, __) => const MyRidesScreen()),
+    GoRoute(
+      path: '/active-trip/:bookingId',
+      builder: (_, state) =>
+          ActiveTripScreen(bookingId: state.pathParameters['bookingId']!),
+    ),
     GoRoute(
         path: '/driver-rides', builder: (_, __) => const DriverRidesScreen()),
     GoRoute(path: '/terms', builder: (_, __) => const TermsScreen()),

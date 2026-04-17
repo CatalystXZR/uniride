@@ -19,6 +19,15 @@ import '../models/transaction.dart';
 class WalletService {
   final _client = SupabaseConfig.client;
 
+  int topupFeeForAmount(int amountCLP) {
+    if (amountCLP <= 0) return 0;
+    return ((amountCLP * 0.01)).round();
+  }
+
+  int topupChargedAmount(int amountCLP) {
+    return amountCLP + topupFeeForAmount(amountCLP);
+  }
+
   Future<void> ensureWalletExists({required String userId}) async {
     await _client.from('wallets').upsert({
       'user_id': userId,
@@ -31,11 +40,8 @@ class WalletService {
     final uid = _client.auth.currentUser?.id;
     if (uid == null) return null;
 
-    final data = await _client
-        .from('wallets')
-        .select()
-        .eq('user_id', uid)
-        .maybeSingle();
+    final data =
+        await _client.from('wallets').select().eq('user_id', uid).maybeSingle();
 
     if (data == null) return null;
     return Wallet.fromJson(data);
@@ -52,7 +58,7 @@ class WalletService {
     return rows.map(Transaction.fromJson).toList();
   }
 
-  /// Calls a Supabase Edge Function that creates a Mercado Pago preference.
+  /// Calls a Supabase Edge Function that creates a provider checkout preference.
   /// Returns the `init_point` URL to launch the checkout.
   Future<String> createTopupIntent(int amountCLP) async {
     final response = await _client.functions.invoke(
@@ -66,8 +72,20 @@ class WalletService {
 
     final data = response.data as Map<String, dynamic>;
 
+    if ((data['status'] as String?) == 'disabled') {
+      throw Exception('payment_provider_disabled');
+    }
+
+    final provider = (data['provider'] as String?)?.trim();
+    if (provider == 'stripe' && data['status'] == 'provider_not_connected') {
+      throw Exception(
+        'Stripe aun no esta habilitado. Temporalmente usamos Mercado Pago para recargas.',
+      );
+    }
+
     if (data.containsKey('error')) {
-      throw Exception(data['error'] as String? ?? 'Error en el proveedor de pagos.');
+      throw Exception(
+          data['error'] as String? ?? 'Error en el proveedor de pagos.');
     }
 
     final initPoint = data['init_point'];

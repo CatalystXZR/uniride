@@ -91,7 +91,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
             ),
             const SizedBox(height: 4),
             const Text(
-              'Recarga segura con Mercado Pago.',
+              'Pagas monto + 1% de fee. Tu billetera recibe el monto exacto.',
               style: TextStyle(color: Color(0xFF5F6E7C), fontSize: 13),
             ),
             const SizedBox(height: 16),
@@ -104,18 +104,22 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                   symbol: '\$',
                   decimalDigits: 0,
                 ).format(amount);
+                final fee = AppConstants.topupFeeForAmount(amount);
+                final charged = AppConstants.topupChargedAmount(amount);
                 return ActionChip(
                   side: const BorderSide(color: Color(0xFFD6E1EA)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  label: Text(
-                    fmt,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
+                  label: Text('$fmt (+\$$fee = \$$charged)'),
                   onPressed: () => Navigator.pop(ctx, amount),
                 );
               }).toList(),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Ejemplo: recarga 10.000 -> pagas 10.100 y recibes 10.000 en la billetera.',
+              style: TextStyle(color: Color(0xFF5F6E7C), fontSize: 12),
             ),
             const SizedBox(height: 16),
           ],

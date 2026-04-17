@@ -107,8 +107,8 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
       if (mounted) {
         setState(() {
           _loadingUniversities = false;
-          _referenceError =
-              AppErrorMapper.toMessage(e, fallback: 'No pudimos cargar universidades.');
+          _referenceError = AppErrorMapper.toMessage(e,
+              fallback: 'No pudimos cargar universidades.');
         });
       }
     }
@@ -122,7 +122,8 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
       });
     }
     try {
-      final rows = await _referenceDataService.getCampusesByUniversity(universityId);
+      final rows =
+          await _referenceDataService.getCampusesByUniversity(universityId);
       if (mounted) {
         setState(() {
           _campuses = rows;
@@ -138,8 +139,8 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
       if (mounted) {
         setState(() {
           _loadingCampuses = false;
-          _referenceError =
-              AppErrorMapper.toMessage(e, fallback: 'No pudimos cargar campus.');
+          _referenceError = AppErrorMapper.toMessage(e,
+              fallback: 'No pudimos cargar campus.');
         });
       }
     }
@@ -179,11 +180,13 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
       return;
     }
     if (_selectedCampusId == null || _selectedUniversityId == null) {
-      AppSnackbar.show(context, 'Selecciona universidad y campus', isError: true);
+      AppSnackbar.show(context, 'Selecciona universidad y campus',
+          isError: true);
       return;
     }
     if (_meetingPointController.text.trim().length < 4) {
-      AppSnackbar.show(context, 'Define un punto de encuentro claro.', isError: true);
+      AppSnackbar.show(context, 'Define un punto de encuentro claro.',
+          isError: true);
       return;
     }
 
@@ -201,7 +204,8 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
         throw Exception('unauthorized');
       }
 
-      final uni = await _referenceDataService.getUniversityById(_selectedUniversityId!);
+      final uni =
+          await _referenceDataService.getUniversityById(_selectedUniversityId!);
       final universityCode =
           _selectedUniversityCode ?? (uni?['code'] as String?) ?? 'UDD';
       final seatPrice = AppConstants.seatPriceForUniversityCode(universityCode);
@@ -256,9 +260,8 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
     final departureFmt = _departureAt != null
         ? DateFormat('EEE d MMM, HH:mm', 'es').format(_departureAt!)
         : 'Seleccionar';
-    final directionLabel = _direction == RideDirection.toCampus
-        ? 'Hacia campus'
-        : 'Desde campus';
+    final directionLabel =
+        _direction == RideDirection.toCampus ? 'Hacia campus' : 'Desde campus';
     final seatPricePreview =
         AppConstants.seatPriceForUniversityCode(_selectedUniversityCode);
     final feePreview = AppConstants.platformFeeForAmount(
@@ -357,7 +360,8 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                           ),
                         ],
                         selected: {_direction},
-                        onSelectionChanged: (s) => setState(() => _direction = s.first),
+                        onSelectionChanged: (s) =>
+                            setState(() => _direction = s.first),
                       ),
                     ],
                   ),
@@ -376,7 +380,8 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                           prefixIcon: Icon(Icons.location_on_outlined),
                         ),
                         items: AppConstants.allowedCommunes
-                            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                            .map((c) =>
+                                DropdownMenuItem(value: c, child: Text(c)))
                             .toList(),
                         onChanged: (v) => setState(() => _selectedCommune = v),
                         validator: (v) => v != null ? null : 'Requerido',
@@ -438,7 +443,8 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                                     ),
                                   )
                                   .toList(),
-                              onChanged: (v) => setState(() => _selectedCampusId = v),
+                              onChanged: (v) =>
+                                  setState(() => _selectedCampusId = v),
                               validator: (v) => v != null ? null : 'Requerido',
                             ),
                       const SizedBox(height: 12),
@@ -455,9 +461,9 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                       const SizedBox(height: 8),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Ruta radial (tarifa 15,25%)'),
+                        title: const Text('Ruta radial'),
                         subtitle: const Text(
-                          'Si aplica recorrido radial, sube ligeramente la comision.',
+                          'Disponible para extensiones futuras de pricing.',
                         ),
                         value: _isRadial,
                         onChanged: (v) => setState(() => _isRadial = v),
@@ -521,7 +527,9 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                           ),
                           const Spacer(),
                           IconButton(
-                            onPressed: _seats > 1 ? () => setState(() => _seats--) : null,
+                            onPressed: _seats > 1
+                                ? () => setState(() => _seats--)
+                                : null,
                             icon: const Icon(Icons.remove_circle_outline),
                           ),
                           Text(
@@ -532,7 +540,9 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                                 ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           IconButton(
-                            onPressed: _seats < 6 ? () => setState(() => _seats++) : null,
+                            onPressed: _seats < 6
+                                ? () => setState(() => _seats++)
+                                : null,
                             icon: const Icon(Icons.add_circle_outline),
                           ),
                         ],
@@ -560,6 +570,14 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                               'Comision: \$$feePreview · Neto conductor: \$$netPreview',
                               style: const TextStyle(
                                 fontSize: 12,
+                                color: Color(0xFF536474),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Comision fija por asiento: \$190',
+                              style: TextStyle(
+                                fontSize: 11,
                                 color: Color(0xFF536474),
                               ),
                             ),

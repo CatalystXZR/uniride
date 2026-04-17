@@ -134,6 +134,162 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
     }
   }
 
+  Future<void> _acceptBooking(Booking booking) async {
+    try {
+      await ref.read(driverRidesProvider.notifier).acceptBooking(booking.id);
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Reserva aceptada.');
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos aceptar la reserva.',
+        ),
+        isError: true,
+      );
+    }
+  }
+
+  Future<void> _rejectBooking(Booking booking) async {
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rechazar reserva'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Se devolvera el monto retenido al pasajero.'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Motivo (opcional)',
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8A2F43),
+            ),
+            child: const Text('Rechazar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      reasonController.dispose();
+      return;
+    }
+
+    try {
+      await ref.read(driverRidesProvider.notifier).rejectBooking(
+            booking.id,
+            reason: reasonController.text.trim().isEmpty
+                ? null
+                : reasonController.text.trim(),
+          );
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Reserva rechazada y reembolsada.');
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos rechazar la reserva.',
+        ),
+        isError: true,
+      );
+    } finally {
+      reasonController.dispose();
+    }
+  }
+
+  Future<void> _markArriving(Booking booking) async {
+    try {
+      await ref.read(driverRidesProvider.notifier).markArriving(booking.id);
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Estado actualizado: en camino.');
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos actualizar a en camino.',
+        ),
+        isError: true,
+      );
+    }
+  }
+
+  Future<void> _markArrived(Booking booking) async {
+    try {
+      await ref.read(driverRidesProvider.notifier).markArrived(booking.id);
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Estado actualizado: conductor llego.');
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos actualizar llegada.',
+        ),
+        isError: true,
+      );
+    }
+  }
+
+  Future<void> _startTrip(Booking booking) async {
+    try {
+      await ref.read(driverRidesProvider.notifier).startTrip(booking.id);
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Viaje iniciado.');
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos iniciar el viaje.',
+        ),
+        isError: true,
+      );
+    }
+  }
+
+  Future<void> _completeTrip(Booking booking) async {
+    try {
+      await ref.read(driverRidesProvider.notifier).completeTrip(booking.id);
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Viaje finalizado y liquidado.');
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos finalizar el viaje.',
+        ),
+        isError: true,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(driverRidesProvider);
@@ -184,8 +340,15 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           itemCount: state.bookings.length,
-                          itemBuilder: (ctx, i) =>
-                              _PassengerBookingCard(booking: state.bookings[i]),
+                          itemBuilder: (ctx, i) => _PassengerBookingCard(
+                            booking: state.bookings[i],
+                            onAccept: _acceptBooking,
+                            onReject: _rejectBooking,
+                            onMarkArriving: _markArriving,
+                            onMarkArrived: _markArrived,
+                            onStartTrip: _startTrip,
+                            onCompleteTrip: _completeTrip,
+                          ),
                         ),
                 ],
               ),
@@ -299,8 +462,22 @@ class _RideCard extends StatelessWidget {
 
 class _PassengerBookingCard extends StatelessWidget {
   final Booking booking;
+  final void Function(Booking)? onAccept;
+  final void Function(Booking)? onReject;
+  final void Function(Booking)? onMarkArriving;
+  final void Function(Booking)? onMarkArrived;
+  final void Function(Booking)? onStartTrip;
+  final void Function(Booking)? onCompleteTrip;
 
-  const _PassengerBookingCard({required this.booking});
+  const _PassengerBookingCard({
+    required this.booking,
+    this.onAccept,
+    this.onReject,
+    this.onMarkArriving,
+    this.onMarkArrived,
+    this.onStartTrip,
+    this.onCompleteTrip,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -335,44 +512,151 @@ class _PassengerBookingCard extends StatelessWidget {
         break;
     }
 
+    final tile = ListTile(
+      leading: CircleAvatar(
+        backgroundColor: statusColor.withValues(alpha: 0.12),
+        child: Icon(Icons.person_outline, color: statusColor, size: 20),
+      ),
+      title: Text(
+        booking.passengerName ?? booking.rideOriginCommune ?? 'Turno',
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      isThreeLine: true,
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(dateFmt,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF6A7783))),
+          Text(
+            booking.dispatchLabel,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFF1E5B7A),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (booking.passengerVehiclePlate != null ||
+              booking.passengerVehicleModel != null)
+            Text(
+              'Auto ${booking.passengerVehicleModel ?? '-'} · Patente ${booking.passengerVehiclePlate ?? '-'}',
+              style: const TextStyle(fontSize: 11, color: Color(0xFF6A7783)),
+            ),
+          if (booking.passengerRating != null)
+            Text(
+              'Rating ${booking.passengerRating!.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 11, color: Color(0xFF6A7783)),
+            ),
+        ],
+      ),
+      trailing: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(priceFmt,
+              style:
+                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+          _StatusBadge(label: statusLabel, color: statusColor),
+        ],
+      ),
+    );
+
+    final actions = <Widget>[];
+    if (booking.isReserved &&
+        booking.dispatchStatus == BookingDispatchStatus.reserved) {
+      actions.addAll([
+        Expanded(
+          child: OutlinedButton(
+            onPressed: onReject == null ? null : () => onReject!(booking),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF8A2F43),
+              side: const BorderSide(color: Color(0xFF8A2F43)),
+            ),
+            child: const Text('Rechazar'),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: onAccept == null ? null : () => onAccept!(booking),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2F7D67),
+            ),
+            child: const Text('Aceptar'),
+          ),
+        ),
+      ]);
+    } else if (booking.isReserved &&
+        booking.dispatchStatus == BookingDispatchStatus.accepted) {
+      actions.add(
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed:
+                onMarkArriving == null ? null : () => onMarkArriving!(booking),
+            icon: const Icon(Icons.route_outlined),
+            label: const Text('Marcar en camino'),
+          ),
+        ),
+      );
+    } else if (booking.isReserved &&
+        booking.dispatchStatus == BookingDispatchStatus.driverArriving) {
+      actions.add(
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed:
+                onMarkArrived == null ? null : () => onMarkArrived!(booking),
+            icon: const Icon(Icons.place_outlined),
+            label: const Text('Marcar llegado'),
+          ),
+        ),
+      );
+    } else if (booking.canDriverStartTrip) {
+      actions.add(
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: onStartTrip == null ? null : () => onStartTrip!(booking),
+            icon: const Icon(Icons.play_arrow_outlined),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E5B7A),
+            ),
+            label: const Text('Iniciar viaje'),
+          ),
+        ),
+      );
+    } else if (booking.canDriverCompleteTrip) {
+      actions.add(
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed:
+                onCompleteTrip == null ? null : () => onCompleteTrip!(booking),
+            icon: const Icon(Icons.check_circle_outline),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2F7D67),
+            ),
+            label: const Text('Finalizar y liquidar'),
+          ),
+        ),
+      );
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: statusColor.withValues(alpha: 0.12),
-          child: Icon(Icons.person_outline, color: statusColor, size: 20),
-        ),
-        title: Text(
-          booking.passengerName ?? booking.rideOriginCommune ?? 'Turno',
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        isThreeLine: true,
-        subtitle: Column(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(dateFmt,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF6A7783))),
-            if (booking.passengerVehiclePlate != null ||
-                booking.passengerVehicleModel != null)
-              Text(
-                'Auto ${booking.passengerVehicleModel ?? '-'} · Patente ${booking.passengerVehiclePlate ?? '-'}',
-                style: const TextStyle(fontSize: 11, color: Color(0xFF6A7783)),
-              ),
-            if (booking.passengerRating != null)
-              Text(
-                'Rating ${booking.passengerRating!.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 11, color: Color(0xFF6A7783)),
-              ),
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(priceFmt,
-                style:
-                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-            _StatusBadge(label: statusLabel, color: statusColor),
+            tile,
+            if (actions.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              if (actions.length == 1)
+                actions.first
+              else
+                Row(children: actions),
+            ],
           ],
         ),
       ),

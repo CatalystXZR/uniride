@@ -75,4 +75,21 @@ class AuthService {
   Future<void> signOut() async {
     await _client.auth.signOut();
   }
+
+  Future<void> deleteMyAccount({String? reason}) async {
+    final response = await _client.functions.invoke(
+      'delete-account',
+      body: {
+        if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+      },
+    );
+
+    final data = response.data;
+    if (data is Map<String, dynamic> && data['success'] == true) {
+      await _client.auth.signOut();
+      return;
+    }
+
+    throw Exception('No pudimos eliminar tu cuenta en este momento.');
+  }
 }

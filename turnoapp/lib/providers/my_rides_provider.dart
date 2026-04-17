@@ -37,6 +37,36 @@ class MyRidesNotifier extends StateNotifier<MyRidesState> {
     await load();
   }
 
+  Future<void> driverAcceptBooking(String bookingId) async {
+    final service = _ref.read(bookingServiceProvider);
+    await service.driverAcceptBooking(bookingId);
+    await load();
+  }
+
+  Future<void> driverMarkArriving(String bookingId) async {
+    final service = _ref.read(bookingServiceProvider);
+    await service.driverMarkArriving(bookingId);
+    await load();
+  }
+
+  Future<void> driverMarkArrived(String bookingId) async {
+    final service = _ref.read(bookingServiceProvider);
+    await service.driverMarkArrived(bookingId);
+    await load();
+  }
+
+  Future<void> driverStartTrip(String bookingId) async {
+    final service = _ref.read(bookingServiceProvider);
+    await service.driverStartTrip(bookingId);
+    await load();
+  }
+
+  Future<void> driverCompleteTrip(String bookingId) async {
+    final service = _ref.read(bookingServiceProvider);
+    await service.driverCompleteTrip(bookingId);
+    await load();
+  }
+
   Future<void> cancelBooking(String bookingId) async {
     final service = _ref.read(bookingServiceProvider);
     await service.cancelBooking(bookingId);

@@ -54,10 +54,12 @@ class RideService {
           universities!university_id(name, code)
         ''')
         .eq('status', 'active')
-        .gt('seats_available', 0);
+        .gt('seats_available', 0)
+        .gt('departure_at', DateTime.now().toIso8601String());
 
     if (campusId != null) query = query.eq('campus_id', campusId);
-    if (originCommune != null) query = query.eq('origin_commune', originCommune);
+    if (originCommune != null)
+      query = query.eq('origin_commune', originCommune);
     if (direction != null) query = query.eq('direction', direction);
 
     if (date != null) {
@@ -73,8 +75,7 @@ class RideService {
     return rows.map((row) {
       // flatten joined fields
       final flat = Map<String, dynamic>.from(row);
-      flat['driver_name'] =
-          (row['users_profile'] as Map?)?['full_name'];
+      flat['driver_name'] = (row['users_profile'] as Map?)?['full_name'];
       flat['campus_name'] = (row['campuses'] as Map?)?['name'];
       flat['university_name'] = (row['universities'] as Map?)?['name'];
       flat['university_code'] = (row['universities'] as Map?)?['code'];
@@ -83,16 +84,12 @@ class RideService {
   }
 
   Future<Ride?> getRideById(String rideId) async {
-    final data = await _client
-        .from('rides')
-        .select('''
+    final data = await _client.from('rides').select('''
           *,
           users_profile!driver_id(full_name),
           campuses!campus_id(name),
           universities!university_id(name, code)
-        ''')
-        .eq('id', rideId)
-        .maybeSingle();
+        ''').eq('id', rideId).maybeSingle();
     if (data == null) return null;
     final flat = Map<String, dynamic>.from(data);
     flat['driver_name'] = (data['users_profile'] as Map?)?['full_name'];

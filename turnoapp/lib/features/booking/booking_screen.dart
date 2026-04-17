@@ -104,7 +104,9 @@ class _BookingScreenState extends State<BookingScreen> {
     }
 
     final priceFmt = NumberFormat.currency(
-      locale: 'es_CL', symbol: '\$', decimalDigits: 0,
+      locale: 'es_CL',
+      symbol: '\$',
+      decimalDigits: 0,
     ).format(price);
 
     final confirmed = await showDialog<bool>(
@@ -224,7 +226,8 @@ class _BookingScreenState extends State<BookingScreen> {
                                     ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: 12),
-                              _PriceRow(label: 'Precio por asiento', value: priceFmt),
+                              _PriceRow(
+                                  label: 'Precio por asiento', value: priceFmt),
                               const Divider(),
                               _PriceRow(
                                 label: 'Comision plataforma',
@@ -252,15 +255,17 @@ class _BookingScreenState extends State<BookingScreen> {
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: (_wallet?.balanceAvailable ?? 0) >= price
-                                      ? const Color(0xFFE9F6EE)
-                                      : const Color(0xFFFCEDEF),
+                                  color:
+                                      (_wallet?.balanceAvailable ?? 0) >= price
+                                          ? const Color(0xFFE9F6EE)
+                                          : const Color(0xFFFCEDEF),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
                                   'Tu saldo actual: $balanceFmt',
                                   style: TextStyle(
-                                    color: (_wallet?.balanceAvailable ?? 0) >= price
+                                    color: (_wallet?.balanceAvailable ?? 0) >=
+                                            price
                                         ? const Color(0xFF1B734D)
                                         : const Color(0xFF8A2F43),
                                     fontWeight: FontWeight.w700,
@@ -270,8 +275,9 @@ class _BookingScreenState extends State<BookingScreen> {
                               ),
                               const SizedBox(height: 8),
                               const Text(
-                                'El pago se libera al conductor cuando presiones "ME SUBI AL AUTO".',
-                                style: TextStyle(fontSize: 12, color: Color(0xFF5F6E7C)),
+                                'El flujo ahora es: conductor acepta -> en camino -> llego -> abordas -> viaje -> finaliza.',
+                                style: TextStyle(
+                                    fontSize: 12, color: Color(0xFF5F6E7C)),
                               ),
                               const SizedBox(height: 8),
                               Text(
@@ -312,7 +318,8 @@ class _BookingScreenState extends State<BookingScreen> {
                         padding: EdgeInsets.only(top: 8),
                         child: Text(
                           'Turno sin cupos disponibles',
-                          style: TextStyle(color: Color(0xFF8A2F43), fontSize: 12),
+                          style:
+                              TextStyle(color: Color(0xFF8A2F43), fontSize: 12),
                         ),
                       ),
                   ],
@@ -329,8 +336,8 @@ class _InfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt = DateFormat('EEEE d \'de\' MMMM, HH:mm', 'es')
-        .format(ride.departureAt);
+    final dateFmt =
+        DateFormat('EEEE d \'de\' MMMM, HH:mm', 'es').format(ride.departureAt);
     final isTo = ride.direction == RideDirection.toCampus;
 
     return Card(
@@ -385,8 +392,7 @@ class _InfoSection extends StatelessWidget {
             ),
             if (ride.driverName != null) ...[
               const SizedBox(height: 8),
-              _InfoRow(
-                  icon: Icons.person_outline, label: ride.driverName!),
+              _InfoRow(icon: Icons.person_outline, label: ride.driverName!),
             ],
           ],
         ),
@@ -451,7 +457,8 @@ class _DriverProfileSection extends StatelessWidget {
                 ),
               ],
             ),
-            if (profile.vehiclePlate != null || profile.vehicleModel != null) ...[
+            if (profile.vehiclePlate != null ||
+                profile.vehicleModel != null) ...[
               const SizedBox(height: 10),
               Text(
                 'Auto: ${(profile.vehicleModel ?? '-')} · Patente: ${(profile.vehiclePlate ?? '-')}',
