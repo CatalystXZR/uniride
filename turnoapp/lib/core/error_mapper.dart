@@ -103,6 +103,20 @@ class AppErrorMapper {
       return 'La ventana para esta accion ya expiro.';
     }
 
+    if (text.contains('p0014') ||
+        text.contains('review_only_completed_trip') ||
+        text.contains('review_already_submitted') ||
+        text.contains('review_window_expired') ||
+        text.contains('invalid_review_stars')) {
+      return 'No fue posible guardar la resena con esos datos o en este estado.';
+    }
+
+    if (text.contains('favorite_self_forbidden') ||
+        text.contains('invalid_favorite_target') ||
+        text.contains('favorite_target_not_found')) {
+      return 'No fue posible actualizar favoritos para ese usuario.';
+    }
+
     if (text.contains('cannot_book_own_ride')) {
       return 'No puedes reservar un turno que publicaste tu mismo.';
     }

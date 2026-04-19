@@ -30,6 +30,8 @@ class Booking {
   final String? passengerPhotoUrl;
   final String? passengerVehiclePlate;
   final String? passengerVehicleModel;
+  final int? passengerRatingCount;
+  final int? driverRatingCount;
   final int amountTotal;
   final BookingStatus status;
   final BookingDispatchStatus dispatchStatus;
@@ -68,6 +70,8 @@ class Booking {
     this.passengerPhotoUrl,
     this.passengerVehiclePlate,
     this.passengerVehicleModel,
+    this.passengerRatingCount,
+    this.driverRatingCount,
     required this.amountTotal,
     required this.status,
     required this.dispatchStatus,
@@ -142,6 +146,8 @@ class Booking {
       passengerPhotoUrl: json['passenger_photo_url'] as String?,
       passengerVehiclePlate: json['passenger_vehicle_plate'] as String?,
       passengerVehicleModel: json['passenger_vehicle_model'] as String?,
+      passengerRatingCount: (json['passenger_rating_count'] as num?)?.toInt(),
+      driverRatingCount: (json['driver_rating_count'] as num?)?.toInt(),
       amountTotal: (json['amount_total'] as int?) ?? 2000,
       status: parseStatus((json['status'] as String?) ?? 'reserved'),
       dispatchStatus: parseDispatchStatus(

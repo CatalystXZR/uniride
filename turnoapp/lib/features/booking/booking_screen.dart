@@ -27,6 +27,9 @@ import '../../services/booking_service.dart';
 import '../../services/profile_service.dart';
 import '../../services/wallet_service.dart';
 import '../../models/wallet.dart';
+import '../../models/user_review.dart';
+import '../../services/favorites_service.dart';
+import '../../services/review_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/decorative_background.dart';
 import '../../shared/widgets/loading_overlay.dart';
@@ -44,10 +47,14 @@ class _BookingScreenState extends State<BookingScreen> {
   final _bookingService = BookingService();
   final _walletService = WalletService();
   final _profileService = ProfileService();
+  final _reviewService = ReviewService();
+  final _favoritesService = FavoritesService();
 
   Ride? _ride;
   Wallet? _wallet;
   UserProfile? _driverProfile;
+  List<UserReview> _driverReviews = const [];
+  bool _isFavoriteDriver = false;
   bool _loading = true;
   bool _booking = false;
 
@@ -66,14 +73,20 @@ class _BookingScreenState extends State<BookingScreen> {
       ]);
       final ride = results[0] as Ride?;
       UserProfile? driverProfile;
+      List<UserReview> reviews = const [];
+      bool isFavorite = false;
       if (ride != null) {
         driverProfile = await _profileService.getProfileById(ride.driverId);
+        reviews = await _reviewService.getPublicUserReviews(ride.driverId);
+        isFavorite = await _favoritesService.isFavorite(ride.driverId);
       }
       if (mounted) {
         setState(() {
           _ride = ride;
           _wallet = results[1] as Wallet?;
           _driverProfile = driverProfile;
+          _driverReviews = reviews;
+          _isFavoriteDriver = isFavorite;
           _loading = false;
         });
       }
@@ -89,6 +102,32 @@ class _BookingScreenState extends State<BookingScreen> {
           isError: true,
         );
       }
+    }
+  }
+
+  Future<void> _toggleDriverFavorite() async {
+    final ride = _ride;
+    if (ride == null) return;
+    try {
+      final next = await _favoritesService.toggleFavorite(ride.driverId);
+      if (!mounted) return;
+      setState(() => _isFavoriteDriver = next);
+      AppSnackbar.show(
+        context,
+        next
+            ? 'Conductor agregado a favoritos.'
+            : 'Conductor eliminado de favoritos.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos actualizar favoritos.',
+        ),
+        isError: true,
+      );
     }
   }
 
@@ -214,7 +253,12 @@ class _BookingScreenState extends State<BookingScreen> {
                         _InfoSection(ride: _ride!),
                         const SizedBox(height: 12),
                         if (_driverProfile != null)
-                          _DriverProfileSection(profile: _driverProfile!),
+                          _DriverProfileSection(
+                            profile: _driverProfile!,
+                            reviews: _driverReviews,
+                            isFavorite: _isFavoriteDriver,
+                            onToggleFavorite: _toggleDriverFavorite,
+                          ),
                         const SizedBox(height: 12),
                         Card(
                           child: Padding(
@@ -412,8 +456,16 @@ class _InfoSection extends StatelessWidget {
 
 class _DriverProfileSection extends StatelessWidget {
   final UserProfile profile;
+  final List<UserReview> reviews;
+  final bool isFavorite;
+  final VoidCallback onToggleFavorite;
 
-  const _DriverProfileSection({required this.profile});
+  const _DriverProfileSection({
+    required this.profile,
+    required this.reviews,
+    required this.isFavorite,
+    required this.onToggleFavorite,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -464,6 +516,18 @@ class _DriverProfileSection extends StatelessWidget {
                     ],
                   ),
                 ),
+                IconButton(
+                  onPressed: onToggleFavorite,
+                  tooltip: isFavorite
+                      ? 'Quitar de favoritos'
+                      : 'Agregar a favoritos',
+                  icon: Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: isFavorite
+                        ? const Color(0xFFFF5A7A)
+                        : Theme.of(context).colorScheme.primary,
+                  ),
+                ),
               ],
             ),
             if (profile.vehiclePlate != null ||
@@ -473,6 +537,53 @@ class _DriverProfileSection extends StatelessWidget {
                 'Auto: ${(profile.vehicleModel ?? '-')} · Patente: ${(profile.vehiclePlate ?? '-')}',
                 style: const TextStyle(fontSize: 13),
               ),
+            ],
+            if (reviews.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 6),
+              const Text(
+                'Referencias recientes',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              ...reviews.take(3).map(
+                    (review) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                review.reviewerName ?? 'Usuario',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '· ${review.stars}/5',
+                                style: const TextStyle(
+                                  color: AppTheme.subtle,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if ((review.comment ?? '').isNotEmpty)
+                            Text(
+                              review.comment!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.subtle,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
             ],
           ],
         ),

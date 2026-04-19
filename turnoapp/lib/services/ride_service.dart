@@ -49,7 +49,7 @@ class RideService {
         .from('rides')
         .select('''
           *,
-          users_profile!driver_id(full_name),
+          users_profile!driver_id(full_name, rating_avg, rating_count),
           campuses!campus_id(name),
           universities!university_id(name, code)
         ''')
@@ -75,7 +75,10 @@ class RideService {
     return rows.map((row) {
       // flatten joined fields
       final flat = Map<String, dynamic>.from(row);
-      flat['driver_name'] = (row['users_profile'] as Map?)?['full_name'];
+      final driver = row['users_profile'] as Map?;
+      flat['driver_name'] = driver?['full_name'];
+      flat['driver_rating'] = driver?['rating_avg'];
+      flat['driver_rating_count'] = driver?['rating_count'];
       flat['campus_name'] = (row['campuses'] as Map?)?['name'];
       flat['university_name'] = (row['universities'] as Map?)?['name'];
       flat['university_code'] = (row['universities'] as Map?)?['code'];
@@ -86,13 +89,16 @@ class RideService {
   Future<Ride?> getRideById(String rideId) async {
     final data = await _client.from('rides').select('''
           *,
-          users_profile!driver_id(full_name),
+          users_profile!driver_id(full_name, rating_avg, rating_count),
           campuses!campus_id(name),
           universities!university_id(name, code)
         ''').eq('id', rideId).maybeSingle();
     if (data == null) return null;
     final flat = Map<String, dynamic>.from(data);
-    flat['driver_name'] = (data['users_profile'] as Map?)?['full_name'];
+    final driver = data['users_profile'] as Map?;
+    flat['driver_name'] = driver?['full_name'];
+    flat['driver_rating'] = driver?['rating_avg'];
+    flat['driver_rating_count'] = driver?['rating_count'];
     flat['campus_name'] = (data['campuses'] as Map?)?['name'];
     flat['university_name'] = (data['universities'] as Map?)?['name'];
     flat['university_code'] = (data['universities'] as Map?)?['code'];

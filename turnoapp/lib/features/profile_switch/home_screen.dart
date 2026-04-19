@@ -537,20 +537,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           children: [
                             Expanded(
                               child: OutlinedButton.icon(
-                                onPressed: () => context.push('/privacy'),
-                                icon: const Icon(Icons.privacy_tip_outlined),
-                                label: const Text('Privacidad'),
+                                onPressed: () => context.push('/favorites'),
+                                icon: const Icon(Icons.favorite_outline),
+                                label: const Text('Favoritos'),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: OutlinedButton.icon(
-                                onPressed: () => context.push('/support'),
-                                icon: const Icon(Icons.support_agent_outlined),
-                                label: const Text('Soporte'),
+                                onPressed: () => context.push('/privacy'),
+                                icon: const Icon(Icons.privacy_tip_outlined),
+                                label: const Text('Privacidad'),
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => context.push('/support'),
+                          icon: const Icon(Icons.support_agent_outlined),
+                          label: const Text('Soporte'),
                         ),
                         const SizedBox(height: 10),
                         OutlinedButton.icon(

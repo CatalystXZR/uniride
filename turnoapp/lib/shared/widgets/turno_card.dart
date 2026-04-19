@@ -25,6 +25,9 @@ class TurnoCard extends StatelessWidget {
   final String? meetingPoint;
   final DateTime departureAt;
   final String direction;
+  final String? driverName;
+  final double? driverRating;
+  final int? driverRatingCount;
   final int seatsAvailable;
   final int seatPrice;
   final int? platformFee;
@@ -41,6 +44,9 @@ class TurnoCard extends StatelessWidget {
     this.meetingPoint,
     required this.departureAt,
     required this.direction,
+    this.driverName,
+    this.driverRating,
+    this.driverRatingCount,
     required this.seatsAvailable,
     required this.seatPrice,
     this.platformFee,
@@ -153,6 +159,16 @@ class TurnoCard extends StatelessWidget {
                   fontSize: 12,
                 ),
               ),
+              if ((driverName ?? '').isNotEmpty || driverRating != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '${driverName ?? 'Conductor'} · Rating ${(driverRating ?? 5).toStringAsFixed(2)} (${driverRatingCount ?? 0})',
+                  style: const TextStyle(
+                    color: AppTheme.subtle,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
               if (meetingPoint != null && meetingPoint!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(

@@ -23,8 +23,11 @@ import '../../core/error_mapper.dart';
 import '../../models/booking.dart';
 import '../../models/enums.dart';
 import '../../providers/my_rides_provider.dart';
+import '../../services/favorites_service.dart';
+import '../../services/review_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/decorative_background.dart';
+import '../../shared/widgets/review_dialog.dart';
 
 class MyRidesScreen extends ConsumerStatefulWidget {
   const MyRidesScreen({super.key});
@@ -35,6 +38,8 @@ class MyRidesScreen extends ConsumerStatefulWidget {
 
 class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
     with SingleTickerProviderStateMixin {
+  final _reviewService = ReviewService();
+  final _favoritesService = FavoritesService();
   late TabController _tabController;
 
   @override
@@ -244,6 +249,70 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
     }
   }
 
+  Future<void> _toggleFavoriteDriver(Booking booking) async {
+    final driverId = booking.driverId;
+    if (driverId == null) return;
+    try {
+      final isFav = await _favoritesService.toggleFavorite(driverId);
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        isFav
+            ? 'Conductor agregado a favoritos.'
+            : 'Conductor eliminado de favoritos.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos actualizar favoritos.',
+        ),
+        isError: true,
+      );
+    }
+  }
+
+  Future<void> _reviewDriver(Booking booking) async {
+    try {
+      final already = await _reviewService.hasReviewForBooking(booking.id);
+      if (already) {
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Ya enviaste una resena para este viaje.');
+        return;
+      }
+      if (!mounted) return;
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (_) => ReviewDialog(
+          title: 'Calificar conductor',
+          subtitle: 'Tu referencia sera publica para ayudar a otros pasajeros.',
+          confirmLabel: 'Publicar resena',
+        ),
+      );
+      if (result == null) return;
+      await _reviewService.submitReview(
+        bookingId: booking.id,
+        stars: (result['stars'] as int?) ?? 5,
+        comment: (result['comment'] as String?)?.trim(),
+      );
+      await _load();
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Resena publicada correctamente.');
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos publicar tu resena.',
+        ),
+        isError: true,
+      );
+    }
+  }
+
   void _openActiveTrip(Booking booking) {
     context.push('/active-trip/${booking.id}');
   }
@@ -286,6 +355,8 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
                               onCancelBooking: _cancelBooking,
                               onReportNoShow: _reportNoShow,
                               onOpenActiveTrip: _openActiveTrip,
+                              onFavoriteDriver: _toggleFavoriteDriver,
+                              onReviewDriver: _reviewDriver,
                             ),
                           ),
                     history.isEmpty
@@ -297,6 +368,8 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
                               booking: history[i],
                               onConfirmBoarding: null,
                               onOpenActiveTrip: null,
+                              onFavoriteDriver: _toggleFavoriteDriver,
+                              onReviewDriver: _reviewDriver,
                             ),
                           ),
                   ],
@@ -313,6 +386,8 @@ class _BookingCard extends StatelessWidget {
   final void Function(Booking)? onCancelBooking;
   final void Function(Booking)? onReportNoShow;
   final void Function(Booking)? onOpenActiveTrip;
+  final void Function(Booking)? onFavoriteDriver;
+  final void Function(Booking)? onReviewDriver;
 
   const _BookingCard({
     required this.booking,
@@ -320,6 +395,8 @@ class _BookingCard extends StatelessWidget {
     this.onCancelBooking,
     this.onReportNoShow,
     this.onOpenActiveTrip,
+    this.onFavoriteDriver,
+    this.onReviewDriver,
   });
 
   @override
@@ -426,6 +503,13 @@ class _BookingCard extends StatelessWidget {
                 style: const TextStyle(fontSize: 12, color: AppTheme.subtle),
               ),
             ],
+            if ((booking.driverRating ?? 0) > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Rating conductor: ${(booking.driverRating ?? 5).toStringAsFixed(2)} (${booking.driverRatingCount ?? 0})',
+                style: const TextStyle(fontSize: 12, color: AppTheme.subtle),
+              ),
+            ],
             if (booking.isReserved && onOpenActiveTrip != null) ...[
               const SizedBox(height: 8),
               SizedBox(
@@ -457,6 +541,34 @@ class _BookingCard extends StatelessWidget {
                     backgroundColor: const Color(0xFF178E68),
                     foregroundColor: Colors.white,
                   ),
+                ),
+              ),
+            ],
+            if (booking.isCompleted &&
+                booking.driverId != null &&
+                onReviewDriver != null) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => onReviewDriver!(booking),
+                  icon: const Icon(Icons.star_outline),
+                  label: const Text('Calificar conductor'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+            if (booking.driverId != null && onFavoriteDriver != null) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => onFavoriteDriver!(booking),
+                  icon: const Icon(Icons.favorite_outline),
+                  label: const Text('Agregar conductor a favoritos'),
                 ),
               ),
             ],

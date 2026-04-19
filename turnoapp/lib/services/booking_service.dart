@@ -106,6 +106,7 @@ class BookingService {
             users_profile!driver_id(
               full_name,
               rating_avg,
+              rating_count,
               profile_photo_url,
               vehicle_plate,
               vehicle_model,
@@ -115,6 +116,7 @@ class BookingService {
           users_profile!passenger_id(
             full_name,
             rating_avg,
+            rating_count,
             profile_photo_url,
             vehicle_plate,
             vehicle_model
@@ -135,12 +137,14 @@ class BookingService {
       final passenger = row['users_profile'] as Map?;
       flat['passenger_name'] = passenger?['full_name'];
       flat['passenger_rating'] = passenger?['rating_avg'];
+      flat['passenger_rating_count'] = passenger?['rating_count'];
       flat['passenger_photo_url'] = passenger?['profile_photo_url'];
       flat['passenger_vehicle_plate'] = passenger?['vehicle_plate'];
       flat['passenger_vehicle_model'] = passenger?['vehicle_model'];
       final driver = (ride?['users_profile'] as Map?);
       flat['driver_name'] = driver?['full_name'];
       flat['driver_rating'] = driver?['rating_avg'];
+      flat['driver_rating_count'] = driver?['rating_count'];
       flat['driver_photo_url'] = driver?['profile_photo_url'];
       flat['driver_vehicle_plate'] = driver?['vehicle_plate'];
       flat['driver_vehicle_model'] = driver?['vehicle_model'];
@@ -175,6 +179,7 @@ class BookingService {
           users_profile!passenger_id(
             full_name,
             rating_avg,
+            rating_count,
             profile_photo_url,
             vehicle_plate,
             vehicle_model
@@ -195,6 +200,7 @@ class BookingService {
       final passenger = row['users_profile'] as Map?;
       flat['passenger_name'] = passenger?['full_name'];
       flat['passenger_rating'] = passenger?['rating_avg'];
+      flat['passenger_rating_count'] = passenger?['rating_count'];
       flat['passenger_photo_url'] = passenger?['profile_photo_url'];
       flat['passenger_vehicle_plate'] = passenger?['vehicle_plate'];
       flat['passenger_vehicle_model'] = passenger?['vehicle_model'];

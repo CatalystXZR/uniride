@@ -37,6 +37,8 @@ class Ride {
 
   // Optional joined fields
   final String? driverName;
+  final double? driverRating;
+  final int? driverRatingCount;
   final String? universityName;
   final String? campusName;
 
@@ -61,6 +63,8 @@ class Ride {
     this.cancelledAt,
     required this.createdAt,
     this.driverName,
+    this.driverRating,
+    this.driverRatingCount,
     this.universityName,
     this.campusName,
   });
@@ -92,6 +96,8 @@ class Ride {
           : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       driverName: json['driver_name'] as String?,
+      driverRating: (json['driver_rating'] as num?)?.toDouble(),
+      driverRatingCount: (json['driver_rating_count'] as num?)?.toInt(),
       universityName: json['university_name'] as String?,
       campusName: json['campus_name'] as String?,
     );
@@ -104,9 +110,8 @@ class Ride {
         'origin_commune': originCommune,
         if (meetingPoint != null) 'meeting_point': meetingPoint,
         'is_radial': isRadial,
-        'direction': direction == RideDirection.toCampus
-            ? 'to_campus'
-            : 'from_campus',
+        'direction':
+            direction == RideDirection.toCampus ? 'to_campus' : 'from_campus',
         'departure_at': departureAt.toIso8601String(),
         'seat_price': seatPrice,
         'platform_fee': platformFee,

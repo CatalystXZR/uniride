@@ -244,6 +244,9 @@ class _SearchRidesScreenState extends ConsumerState<SearchRidesScreen>
                                         ride.direction == RideDirection.toCampus
                                             ? 'to_campus'
                                             : 'from_campus',
+                                    driverName: ride.driverName,
+                                    driverRating: ride.driverRating,
+                                    driverRatingCount: ride.driverRatingCount,
                                     seatsAvailable: ride.seatsAvailable,
                                     seatPrice: ride.seatPrice,
                                     platformFee: ride.platformFee,

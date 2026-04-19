@@ -30,6 +30,7 @@ import '../features/my_rides/active_trip_screen.dart';
 import '../features/legal/terms_screen.dart';
 import '../features/legal/privacy_policy_screen.dart';
 import '../features/legal/support_screen.dart';
+import '../features/favorites/favorites_screen.dart';
 import '../features/profile/edit_profile_screen.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -84,6 +85,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/terms', builder: (_, __) => const TermsScreen()),
     GoRoute(path: '/privacy', builder: (_, __) => const PrivacyPolicyScreen()),
     GoRoute(path: '/support', builder: (_, __) => const SupportScreen()),
+    GoRoute(path: '/favorites', builder: (_, __) => const FavoritesScreen()),
     GoRoute(
         path: '/profile/edit', builder: (_, __) => const EditProfileScreen()),
   ],

@@ -22,8 +22,11 @@ import '../../models/booking.dart';
 import '../../models/enums.dart';
 import '../../models/ride.dart';
 import '../../providers/driver_rides_provider.dart';
+import '../../services/favorites_service.dart';
+import '../../services/review_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/decorative_background.dart';
+import '../../shared/widgets/review_dialog.dart';
 
 class DriverRidesScreen extends ConsumerStatefulWidget {
   const DriverRidesScreen({super.key});
@@ -34,6 +37,8 @@ class DriverRidesScreen extends ConsumerStatefulWidget {
 
 class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
     with SingleTickerProviderStateMixin {
+  final _reviewService = ReviewService();
+  final _favoritesService = FavoritesService();
   late TabController _tabController;
 
   @override
@@ -295,6 +300,69 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
     }
   }
 
+  Future<void> _toggleFavoritePassenger(Booking booking) async {
+    try {
+      final isFav = await _favoritesService.toggleFavorite(booking.passengerId);
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        isFav
+            ? 'Pasajero agregado a favoritos.'
+            : 'Pasajero eliminado de favoritos.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos actualizar favoritos.',
+        ),
+        isError: true,
+      );
+    }
+  }
+
+  Future<void> _reviewPassenger(Booking booking) async {
+    try {
+      final already = await _reviewService.hasReviewForBooking(booking.id);
+      if (already) {
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Ya enviaste una resena para este viaje.');
+        return;
+      }
+      if (!mounted) return;
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (_) => const ReviewDialog(
+          title: 'Calificar pasajero',
+          subtitle:
+              'Tu referencia sera publica para ayudar a otros conductores.',
+          confirmLabel: 'Publicar resena',
+        ),
+      );
+      if (result == null) return;
+      await _reviewService.submitReview(
+        bookingId: booking.id,
+        stars: (result['stars'] as int?) ?? 5,
+        comment: (result['comment'] as String?)?.trim(),
+      );
+      await _load();
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Resena publicada correctamente.');
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(
+        context,
+        AppErrorMapper.toMessage(
+          e,
+          fallback: 'No pudimos publicar la resena.',
+        ),
+        isError: true,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(driverRidesProvider);
@@ -357,6 +425,8 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
                               onMarkArrived: _markArrived,
                               onStartTrip: _startTrip,
                               onCompleteTrip: _completeTrip,
+                              onFavoritePassenger: _toggleFavoritePassenger,
+                              onReviewPassenger: _reviewPassenger,
                             ),
                           ),
                   ],
@@ -478,6 +548,8 @@ class _PassengerBookingCard extends StatelessWidget {
   final void Function(Booking)? onMarkArrived;
   final void Function(Booking)? onStartTrip;
   final void Function(Booking)? onCompleteTrip;
+  final void Function(Booking)? onFavoritePassenger;
+  final void Function(Booking)? onReviewPassenger;
 
   const _PassengerBookingCard({
     required this.booking,
@@ -487,6 +559,8 @@ class _PassengerBookingCard extends StatelessWidget {
     this.onMarkArrived,
     this.onStartTrip,
     this.onCompleteTrip,
+    this.onFavoritePassenger,
+    this.onReviewPassenger,
   });
 
   @override
@@ -553,7 +627,7 @@ class _PassengerBookingCard extends StatelessWidget {
             ),
           if (booking.passengerRating != null)
             Text(
-              'Rating ${booking.passengerRating!.toStringAsFixed(2)}',
+              'Rating ${booking.passengerRating!.toStringAsFixed(2)} (${booking.passengerRatingCount ?? 0})',
               style: const TextStyle(fontSize: 11, color: AppTheme.subtle),
             ),
         ],
@@ -655,6 +729,38 @@ class _PassengerBookingCard extends StatelessWidget {
       );
     }
 
+    if (booking.isCompleted && onReviewPassenger != null) {
+      actions.add(
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: onReviewPassenger == null
+                ? null
+                : () => onReviewPassenger!(booking),
+            icon: const Icon(Icons.star_outline),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+            ),
+            label: const Text('Calificar pasajero'),
+          ),
+        ),
+      );
+    }
+
+    if (onFavoritePassenger != null) {
+      actions.add(
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => onFavoritePassenger!(booking),
+            icon: const Icon(Icons.favorite_outline),
+            label: const Text('Agregar pasajero a favoritos'),
+          ),
+        ),
+      );
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Padding(
@@ -667,8 +773,22 @@ class _PassengerBookingCard extends StatelessWidget {
               const SizedBox(height: 10),
               if (actions.length == 1)
                 actions.first
+              else if (actions.length == 2)
+                Row(children: actions)
               else
-                Row(children: actions),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    actions.first,
+                    const SizedBox(height: 8),
+                    ...actions.skip(1).map(
+                          (w) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: w,
+                          ),
+                        ),
+                  ],
+                ),
             ],
           ],
         ),
