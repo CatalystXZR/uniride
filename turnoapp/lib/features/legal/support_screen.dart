@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../app/theme.dart';
 import '../../core/constants.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/decorative_background.dart';
@@ -164,14 +165,14 @@ class _ContactTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tone = isDanger ? const Color(0xFFBA3E5A) : const Color(0xFF1F9DFF);
+    final tone = isDanger ? AppTheme.danger : AppTheme.primary;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFCFE0F4)),
+        border: Border.all(color: AppTheme.border),
         color: const Color(0xFFF8FBFF),
       ),
       child: Column(
@@ -192,7 +193,7 @@ class _ContactTile extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(color: Color(0xFF5C6F8B)),
+            style: const TextStyle(color: AppTheme.subtle),
           ),
           if (actionLabel != null && onPressed != null) ...[
             const SizedBox(height: 8),

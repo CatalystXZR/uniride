@@ -173,7 +173,7 @@ class _SearchRidesScreenState extends ConsumerState<SearchRidesScreen>
                               avatar: const Icon(
                                 Icons.error_outline,
                                 size: 16,
-                                color: Color(0xFF8A2F43),
+                                color: AppTheme.danger,
                               ),
                               label: const Text('Reintentar campus'),
                               onPressed: notifier.loadCampuses,
@@ -328,7 +328,7 @@ class _EmptyState extends StatelessWidget {
           const Text(
             'Filtra o presiona buscar\npara ver turnos disponibles',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF6A7783)),
+            style: TextStyle(color: AppTheme.subtle),
           ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
@@ -354,13 +354,13 @@ class _NoResults extends StatelessWidget {
           Icon(
             Icons.directions_car_outlined,
             size: 64,
-            color: Color(0xFF6A7783),
+            color: AppTheme.subtle,
           ),
           SizedBox(height: 12),
           Text(
             'No hay turnos disponibles\ncon estos filtros',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF6A7783)),
+            style: TextStyle(color: AppTheme.subtle),
           ),
         ],
       ),

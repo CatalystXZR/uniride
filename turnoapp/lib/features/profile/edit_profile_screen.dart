@@ -301,7 +301,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 _selectedPhotoName!,
                                 style: const TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF6A7783),
+                                  color: AppTheme.subtle,
                                 ),
                               ),
                             ],
@@ -311,7 +311,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 'La foto se subira al guardar cambios.',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Color(0xFF8A2F43),
+                                  color: AppTheme.danger,
                                 ),
                               ),
                             ],
@@ -464,7 +464,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                     const SizedBox(height: 12),
                     Card(
-                      color: const Color(0xFFFDF4F6),
+                      color: const Color(0xFFFFF3F6),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
@@ -481,7 +481,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             const Text(
                               'Puedes solicitar la eliminacion completa de tu cuenta y datos personales desde aqui.',
                               style: TextStyle(
-                                color: Color(0xFF6A7783),
+                                color: AppTheme.subtle,
                                 fontSize: 13,
                               ),
                             ),
@@ -490,9 +490,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               onPressed:
                                   _deleting ? null : _confirmDeleteAccount,
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFF8A2F43),
-                                side:
-                                    const BorderSide(color: Color(0xFF8A2F43)),
+                                foregroundColor: AppTheme.danger,
+                                side: const BorderSide(color: AppTheme.danger),
                               ),
                               icon: const Icon(Icons.delete_forever_outlined),
                               label: const Text('Eliminar mi cuenta'),

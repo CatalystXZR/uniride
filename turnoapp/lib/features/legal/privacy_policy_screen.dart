@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme.dart';
 import '../../core/constants.dart';
 import '../../shared/widgets/decorative_background.dart';
 
@@ -90,7 +91,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     Text(
                       'Version ${AppConstants.privacyPolicyVersion} · Actualizada ${AppConstants.privacyPolicyLastUpdated}',
                       style: const TextStyle(
-                        color: Color(0xFF5C6F8B),
+                        color: AppTheme.subtle,
                         fontSize: 12,
                       ),
                     ),
@@ -131,7 +132,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                                   child: Icon(
                                     Icons.shield_outlined,
                                     size: 16,
-                                    color: Color(0xFF1F9DFF),
+                                    color: AppTheme.primary,
                                   ),
                                 ),
                                 const SizedBox(width: 8),

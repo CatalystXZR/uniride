@@ -15,6 +15,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+
+import '../../app/theme.dart';
 import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
 import '../../models/user_profile.dart';
@@ -284,10 +286,21 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFE4EFF5), Color(0xFFF4F9FC)],
+                    colors: [
+                      Color(0xFF041227),
+                      Color(0xFF0E3A63),
+                      Color(0xFF1F8DE6),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x551073D6),
+                      blurRadius: 24,
+                      offset: Offset(0, 12),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -295,7 +308,7 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                       width: 46,
                       height: 46,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E5B7A),
+                        color: Colors.white.withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Icon(
@@ -315,7 +328,10 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -323,7 +339,7 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                             style: Theme.of(context)
                                 .textTheme
                                 .bodySmall
-                                ?.copyWith(color: const Color(0xFF536474)),
+                                ?.copyWith(color: const Color(0xFFD7E8F2)),
                           ),
                         ],
                       ),
@@ -477,18 +493,18 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFDF4F6),
+                    color: const Color(0xFFFFF3F6),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFEACCD3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: Color(0xFF8A2F43)),
+                      const Icon(Icons.error_outline, color: AppTheme.danger),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _referenceError!,
-                          style: const TextStyle(color: Color(0xFF8A2F43)),
+                          style: const TextStyle(color: AppTheme.danger),
                         ),
                       ),
                       TextButton(
@@ -552,7 +568,7 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF3F7FA),
+                          color: const Color(0xFFEAF4FF),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
@@ -562,7 +578,7 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                               'Precio por asiento: \$$seatPricePreview',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF1E5B7A),
+                                color: AppTheme.primary,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -570,7 +586,7 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                               'Comision: \$$feePreview · Neto conductor: \$$netPreview',
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF536474),
+                                color: AppTheme.subtle,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -578,7 +594,7 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                               'Comision fija por asiento: \$190',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Color(0xFF536474),
+                                color: AppTheme.subtle,
                               ),
                             ),
                           ],

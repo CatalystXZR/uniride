@@ -122,6 +122,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(double.infinity, 50),
           foregroundColor: onSurface,
+          backgroundColor: const Color(0xFFF8FBFF),
           side: const BorderSide(color: border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -129,6 +130,14 @@ class AppTheme {
           textStyle: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 15,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: primary,
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

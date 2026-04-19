@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/theme.dart';
 import '../../core/constants.dart';
 import '../../shared/widgets/decorative_background.dart';
 import '../../services/legal_service.dart';
@@ -35,7 +36,7 @@ class TermsScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'Version ${terms.version}',
-                      style: const TextStyle(color: Color(0xFF6A7783)),
+                      style: const TextStyle(color: AppTheme.subtle),
                     ),
                     const SizedBox(height: 14),
                     ...terms.bullets.map(
@@ -49,7 +50,7 @@ class TermsScreen extends StatelessWidget {
                               child: Icon(
                                 Icons.check_circle_outline,
                                 size: 18,
-                                color: Color(0xFF1F9DFF),
+                                color: AppTheme.primary,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -132,7 +133,7 @@ class TermsScreen extends StatelessWidget {
               'Telefono de emergencia: ${AppConstants.emergencyPhoneCL}',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: Color(0xFFBA3E5A),
+                color: AppTheme.danger,
                 fontWeight: FontWeight.w700,
               ),
             ),
