@@ -95,6 +95,7 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF178E68),
+              foregroundColor: Colors.white,
             ),
             child: const Text('ME SUBI AL AUTO'),
           ),
@@ -149,6 +150,7 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.danger,
+              foregroundColor: Colors.white,
             ),
             child: const Text('Cancelar reserva'),
           ),
@@ -453,6 +455,7 @@ class _BookingCard extends StatelessWidget {
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF178E68),
+                    foregroundColor: Colors.white,
                   ),
                 ),
               ),

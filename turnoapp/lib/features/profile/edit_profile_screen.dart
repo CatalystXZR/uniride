@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../app/theme.dart';
 import '../../core/error_mapper.dart';
 import '../../services/auth_service.dart';
 import '../../services/profile_service.dart';
@@ -547,7 +548,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8A2F43),
+              backgroundColor: AppTheme.danger,
+              foregroundColor: Colors.white,
             ),
             child: const Text('Eliminar definitivamente'),
           ),

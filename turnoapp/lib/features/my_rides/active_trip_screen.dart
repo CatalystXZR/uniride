@@ -305,6 +305,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                   icon: const Icon(Icons.directions_car),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF178E68),
+                    foregroundColor: Colors.white,
                   ),
                   label: const Text('ME SUBI AL AUTO'),
                 ),

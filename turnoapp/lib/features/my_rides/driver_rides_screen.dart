@@ -98,6 +98,7 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.danger,
+              foregroundColor: Colors.white,
             ),
             child: const Text('Cancelar turno'),
           ),
@@ -185,6 +186,7 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.danger,
+              foregroundColor: Colors.white,
             ),
             child: const Text('Rechazar'),
           ),
@@ -588,6 +590,7 @@ class _PassengerBookingCard extends StatelessWidget {
             onPressed: onAccept == null ? null : () => onAccept!(booking),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF178E68),
+              foregroundColor: Colors.white,
             ),
             child: const Text('Aceptar'),
           ),
@@ -628,6 +631,7 @@ class _PassengerBookingCard extends StatelessWidget {
             icon: const Icon(Icons.play_arrow_outlined),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
             ),
             label: const Text('Iniciar viaje'),
           ),
@@ -643,6 +647,7 @@ class _PassengerBookingCard extends StatelessWidget {
             icon: const Icon(Icons.check_circle_outline),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF178E68),
+              foregroundColor: Colors.white,
             ),
             label: const Text('Finalizar y liquidar'),
           ),
