@@ -28,9 +28,8 @@ turnoapp/**/*.g.dart
 turnoapp/**/*.freezed.dart
 turnoapp/**/*.mocks.dart
 
-# Platform-specific generated code (not needed for web-only PWA)
+# Platform-specific generated code
 turnoapp/android/
-turnoapp/ios/
 turnoapp/linux/
 turnoapp/macos/
 turnoapp/windows/

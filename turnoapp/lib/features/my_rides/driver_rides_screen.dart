@@ -16,12 +16,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/theme.dart';
 import '../../core/error_mapper.dart';
 import '../../models/booking.dart';
 import '../../models/enums.dart';
 import '../../models/ride.dart';
 import '../../providers/driver_rides_provider.dart';
 import '../../shared/widgets/app_snackbar.dart';
+import '../../shared/widgets/decorative_background.dart';
 
 class DriverRidesScreen extends ConsumerStatefulWidget {
   const DriverRidesScreen({super.key});
@@ -95,7 +97,8 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8A2F43)),
+              backgroundColor: AppTheme.danger,
+            ),
             child: const Text('Cancelar turno'),
           ),
         ],
@@ -181,7 +184,7 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8A2F43),
+              backgroundColor: AppTheme.danger,
             ),
             child: const Text('Rechazar'),
           ),
@@ -307,52 +310,57 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
           ],
         ),
       ),
-      body: state.loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  activeRides.isEmpty && pastRides.isEmpty
-                      ? const _EmptyState(
-                          message: 'No has publicado turnos aun')
-                      : ListView(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          children: [
-                            if (activeRides.isNotEmpty) ...[
-                              const _SectionHeader(title: 'Activos'),
-                              ...activeRides.map(
-                                (r) => _RideCard(
-                                  ride: r,
-                                  onCancel: () => _cancelRide(r),
+      body: DecorativeBackground(
+        child: state.loading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    activeRides.isEmpty && pastRides.isEmpty
+                        ? const _EmptyState(
+                            message: 'No has publicado turnos aun',
+                          )
+                        : ListView(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            children: [
+                              if (activeRides.isNotEmpty) ...[
+                                const _SectionHeader(title: 'Activos'),
+                                ...activeRides.map(
+                                  (r) => _RideCard(
+                                    ride: r,
+                                    onCancel: () => _cancelRide(r),
+                                  ),
                                 ),
-                              ),
+                              ],
+                              if (pastRides.isNotEmpty) ...[
+                                const _SectionHeader(title: 'Historial'),
+                                ...pastRides.map((r) => _RideCard(ride: r)),
+                              ],
                             ],
-                            if (pastRides.isNotEmpty) ...[
-                              const _SectionHeader(title: 'Historial'),
-                              ...pastRides.map((r) => _RideCard(ride: r)),
-                            ],
-                          ],
-                        ),
-                  state.bookings.isEmpty
-                      ? const _EmptyState(message: 'Sin pasajeros registrados')
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          itemCount: state.bookings.length,
-                          itemBuilder: (ctx, i) => _PassengerBookingCard(
-                            booking: state.bookings[i],
-                            onAccept: _acceptBooking,
-                            onReject: _rejectBooking,
-                            onMarkArriving: _markArriving,
-                            onMarkArrived: _markArrived,
-                            onStartTrip: _startTrip,
-                            onCompleteTrip: _completeTrip,
                           ),
-                        ),
-                ],
+                    state.bookings.isEmpty
+                        ? const _EmptyState(
+                            message: 'Sin pasajeros registrados',
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            itemCount: state.bookings.length,
+                            itemBuilder: (ctx, i) => _PassengerBookingCard(
+                              booking: state.bookings[i],
+                              onAccept: _acceptBooking,
+                              onReject: _rejectBooking,
+                              onMarkArriving: _markArriving,
+                              onMarkArrived: _markArrived,
+                              onStartTrip: _startTrip,
+                              onCompleteTrip: _completeTrip,
+                            ),
+                          ),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 }
@@ -377,15 +385,15 @@ class _RideCard extends StatelessWidget {
     String statusLabel;
     switch (ride.status) {
       case 'active':
-        statusColor = const Color(0xFF2F7D67);
+        statusColor = const Color(0xFF178E68);
         statusLabel = 'Activo';
         break;
       case 'completed':
-        statusColor = const Color(0xFF365D74);
+        statusColor = const Color(0xFF1760A3);
         statusLabel = 'Completado';
         break;
       default:
-        statusColor = const Color(0xFF8A2F43);
+        statusColor = AppTheme.danger;
         statusLabel = 'Cancelado';
     }
 
@@ -412,12 +420,12 @@ class _RideCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(dateFmt,
-                style: const TextStyle(color: Color(0xFF6A7783), fontSize: 13)),
+                style: const TextStyle(color: AppTheme.subtle, fontSize: 13)),
             if (ride.meetingPoint != null && ride.meetingPoint!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 'Punto: ${ride.meetingPoint}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF6A7783)),
+                style: const TextStyle(fontSize: 12, color: AppTheme.subtle),
               ),
             ],
             const SizedBox(height: 4),
@@ -446,8 +454,8 @@ class _RideCard extends StatelessWidget {
                   onPressed: onCancel,
                   icon: const Icon(Icons.cancel_outlined),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF8A2F43),
-                    side: const BorderSide(color: Color(0xFF8A2F43)),
+                    foregroundColor: AppTheme.danger,
+                    side: const BorderSide(color: AppTheme.danger),
                   ),
                   label: const Text('Cancelar turno'),
                 ),
@@ -495,19 +503,19 @@ class _PassengerBookingCard extends StatelessWidget {
     String statusLabel;
     switch (booking.status) {
       case BookingStatus.reserved:
-        statusColor = const Color(0xFF1E5B7A);
+        statusColor = AppTheme.primary;
         statusLabel = 'Reservado';
         break;
       case BookingStatus.completed:
-        statusColor = const Color(0xFF2F7D67);
+        statusColor = const Color(0xFF178E68);
         statusLabel = 'Completado';
         break;
       case BookingStatus.cancelled:
-        statusColor = const Color(0xFF8A2F43);
+        statusColor = AppTheme.danger;
         statusLabel = 'Cancelado';
         break;
       case BookingStatus.noShow:
-        statusColor = const Color(0xFFC4871F);
+        statusColor = AppTheme.warning;
         statusLabel = 'No show';
         break;
     }
@@ -526,12 +534,12 @@ class _PassengerBookingCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(dateFmt,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF6A7783))),
+              style: const TextStyle(fontSize: 12, color: AppTheme.subtle)),
           Text(
             booking.dispatchLabel,
             style: const TextStyle(
               fontSize: 11,
-              color: Color(0xFF1E5B7A),
+              color: AppTheme.primary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -539,12 +547,12 @@ class _PassengerBookingCard extends StatelessWidget {
               booking.passengerVehicleModel != null)
             Text(
               'Auto ${booking.passengerVehicleModel ?? '-'} · Patente ${booking.passengerVehiclePlate ?? '-'}',
-              style: const TextStyle(fontSize: 11, color: Color(0xFF6A7783)),
+              style: const TextStyle(fontSize: 11, color: AppTheme.subtle),
             ),
           if (booking.passengerRating != null)
             Text(
               'Rating ${booking.passengerRating!.toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 11, color: Color(0xFF6A7783)),
+              style: const TextStyle(fontSize: 11, color: AppTheme.subtle),
             ),
         ],
       ),
@@ -568,8 +576,8 @@ class _PassengerBookingCard extends StatelessWidget {
           child: OutlinedButton(
             onPressed: onReject == null ? null : () => onReject!(booking),
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF8A2F43),
-              side: const BorderSide(color: Color(0xFF8A2F43)),
+              foregroundColor: AppTheme.danger,
+              side: const BorderSide(color: AppTheme.danger),
             ),
             child: const Text('Rechazar'),
           ),
@@ -579,7 +587,7 @@ class _PassengerBookingCard extends StatelessWidget {
           child: ElevatedButton(
             onPressed: onAccept == null ? null : () => onAccept!(booking),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2F7D67),
+              backgroundColor: const Color(0xFF178E68),
             ),
             child: const Text('Aceptar'),
           ),
@@ -619,7 +627,7 @@ class _PassengerBookingCard extends StatelessWidget {
             onPressed: onStartTrip == null ? null : () => onStartTrip!(booking),
             icon: const Icon(Icons.play_arrow_outlined),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E5B7A),
+              backgroundColor: AppTheme.primary,
             ),
             label: const Text('Iniciar viaje'),
           ),
@@ -634,7 +642,7 @@ class _PassengerBookingCard extends StatelessWidget {
                 onCompleteTrip == null ? null : () => onCompleteTrip!(booking),
             icon: const Icon(Icons.check_circle_outline),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2F7D67),
+              backgroundColor: const Color(0xFF178E68),
             ),
             label: const Text('Finalizar y liquidar'),
           ),
@@ -702,7 +710,7 @@ class _SectionHeader extends StatelessWidget {
         style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: Color(0xFF6A7783),
+          color: AppTheme.subtle,
           letterSpacing: 0.8,
         ),
       ),
@@ -723,7 +731,7 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(Icons.drive_eta, size: 64, color: Colors.grey.shade300),
           const SizedBox(height: 12),
-          Text(message, style: const TextStyle(color: Color(0xFF6A7783))),
+          Text(message, style: const TextStyle(color: AppTheme.subtle)),
         ],
       ),
     );

@@ -533,10 +533,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ),
                                 Align(
                                   alignment: Alignment.centerLeft,
-                                  child: TextButton(
-                                    onPressed: () => context.push('/terms'),
-                                    child: const Text(
-                                        'Leer terminos y condiciones'),
+                                  child: Wrap(
+                                    spacing: 8,
+                                    runSpacing: 0,
+                                    children: [
+                                      TextButton(
+                                        onPressed: () => context.push('/terms'),
+                                        child: const Text('Terminos'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            context.push('/privacy'),
+                                        child: const Text('Privacidad'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            context.push('/support'),
+                                        child: const Text('Soporte'),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],

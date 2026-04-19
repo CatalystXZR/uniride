@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/theme.dart';
 import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
 import '../../models/booking.dart';
@@ -172,7 +173,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
             if (booking.dispatchStatus == BookingDispatchStatus.cancelled ||
                 booking.dispatchStatus == BookingDispatchStatus.noShow) ...[
               Card(
-                color: const Color(0xFFFDF4F6),
+                color: const Color(0xFFFFF3F6),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
@@ -180,7 +181,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                         ? 'Este viaje fue cancelado.'
                         : 'Este viaje fue marcado como no-show.',
                     style: const TextStyle(
-                      color: Color(0xFF8A2F43),
+                      color: AppTheme.danger,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -199,13 +200,13 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E5B7A),
+                        color: AppTheme.primary,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       '${booking.rideOriginCommune ?? '-'} · ${booking.campusName ?? '-'}',
-                      style: const TextStyle(color: Color(0xFF6A7783)),
+                      style: const TextStyle(color: AppTheme.subtle),
                     ),
                     if (booking.driverName != null) ...[
                       const SizedBox(height: 6),
@@ -218,13 +219,13 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                         booking.driverVehiclePlate != null)
                       Text(
                         'Auto ${booking.driverVehicleModel ?? '-'} · Patente ${booking.driverVehiclePlate ?? '-'}',
-                        style: const TextStyle(color: Color(0xFF6A7783)),
+                        style: const TextStyle(color: AppTheme.subtle),
                       ),
                     if (booking.driverEmergencyContact != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         'Contacto conductor: ${booking.driverEmergencyContact}',
-                        style: const TextStyle(color: Color(0xFF6A7783)),
+                        style: const TextStyle(color: AppTheme.subtle),
                       ),
                     ],
                   ],
@@ -254,7 +255,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                                   : Icons.radio_button_unchecked,
                               size: 18,
                               color: step.done
-                                  ? const Color(0xFF2F7D67)
+                                  ? const Color(0xFF178E68)
                                   : const Color(0xFF9AA8B5),
                             ),
                             const SizedBox(width: 8),
@@ -269,7 +270,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
             ),
             const SizedBox(height: 12),
             Card(
-              color: const Color(0xFFFDF4F6),
+              color: const Color(0xFFFFF3F6),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -282,7 +283,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                     const SizedBox(height: 6),
                     Text(
                       'Si hay emergencia, llama al ${AppConstants.emergencyPhoneCL} de inmediato.',
-                      style: const TextStyle(color: Color(0xFF8A2F43)),
+                      style: const TextStyle(color: AppTheme.danger),
                     ),
                   ],
                 ),
@@ -303,7 +304,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                   onPressed: () => _confirmBoarding(booking),
                   icon: const Icon(Icons.directions_car),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2F7D67),
+                    backgroundColor: const Color(0xFF178E68),
                   ),
                   label: const Text('ME SUBI AL AUTO'),
                 ),
@@ -319,8 +320,8 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                   );
                 },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF8A2F43),
-                  side: const BorderSide(color: Color(0xFF8A2F43)),
+                  foregroundColor: AppTheme.danger,
+                  side: const BorderSide(color: AppTheme.danger),
                 ),
                 icon: const Icon(Icons.emergency_outlined),
                 label: const Text('Boton de emergencia'),

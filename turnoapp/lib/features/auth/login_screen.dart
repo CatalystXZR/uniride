@@ -176,6 +176,27 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: const Text('Ingresar'),
                                 ),
                                 const SizedBox(height: 10),
+                                Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: [
+                                    TextButton(
+                                      onPressed: () => context.push('/terms'),
+                                      child:
+                                          const Text('Terminos y condiciones'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => context.push('/privacy'),
+                                      child: const Text('Privacidad'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => context.push('/support'),
+                                      child: const Text('Soporte'),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
                                 TextButton(
                                   onPressed: () => context.push('/register'),
                                   child: const Text(

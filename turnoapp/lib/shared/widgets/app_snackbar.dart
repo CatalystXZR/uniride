@@ -14,15 +14,15 @@
 
 import 'package:flutter/material.dart';
 
+import '../../app/theme.dart';
+
 class AppSnackbar {
   static void show(
     BuildContext context,
     String message, {
     bool isError = false,
   }) {
-    final color = isError
-        ? const Color(0xFF8A2F43)
-        : const Color(0xFF1A4D63);
+    final color = isError ? AppTheme.danger : AppTheme.primaryDark;
     final icon = isError ? Icons.error_outline : Icons.check_circle_outline;
 
     ScaffoldMessenger.of(context).showSnackBar(

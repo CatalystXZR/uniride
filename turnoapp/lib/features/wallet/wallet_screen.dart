@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../app/theme.dart';
 import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
 import '../../models/transaction.dart';
@@ -92,7 +93,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
             const SizedBox(height: 4),
             const Text(
               'Pagas monto + 1% de fee. Tu billetera recibe el monto exacto.',
-              style: TextStyle(color: Color(0xFF5F6E7C), fontSize: 13),
+              style: TextStyle(color: AppTheme.subtle, fontSize: 13),
             ),
             const SizedBox(height: 16),
             Wrap(
@@ -119,7 +120,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
             const SizedBox(height: 8),
             const Text(
               'Ejemplo: recarga 10.000 -> pagas 10.100 y recibes 10.000 en la billetera.',
-              style: TextStyle(color: Color(0xFF5F6E7C), fontSize: 12),
+              style: TextStyle(color: AppTheme.subtle, fontSize: 12),
             ),
             const SizedBox(height: 16),
           ],
@@ -254,7 +255,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(walletProvider);
     final wallet = state.wallet;
-    final transactions = state.transactions;
 
     if (!state.loading && !_fadeController.isCompleted) {
       _fadeController.forward();
@@ -302,8 +302,19 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                             gradient: const LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: [Color(0xFF1E5B7A), Color(0xFF2A6C8E)],
+                              colors: [
+                                Color(0xFF041227),
+                                Color(0xFF0E3A63),
+                                Color(0xFF1F8DE6),
+                              ],
                             ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x551073D6),
+                                blurRadius: 24,
+                                offset: Offset(0, 12),
+                              ),
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,8 +353,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                                       onPressed: _startTopup,
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.white,
-                                        foregroundColor:
-                                            const Color(0xFF1E5B7A),
+                                        foregroundColor: AppTheme.primary,
                                       ),
                                       icon: const Icon(Icons.add),
                                       label: const Text('Recargar'),
@@ -369,7 +379,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                           ),
                         ),
                         const SizedBox(height: 18),
-                        if (transactions.isNotEmpty) ...[
+                        if (state.transactions.isNotEmpty) ...[
                           Text(
                             'Historial',
                             style: Theme.of(context)
@@ -378,14 +388,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 8),
-                          ...transactions.map((tx) => _TransactionTile(tx: tx)),
+                          ...state.transactions
+                              .map((tx) => _TransactionTile(tx: tx)),
                         ] else
                           const Center(
                             child: Padding(
                               padding: EdgeInsets.all(32),
                               child: Text(
                                 'Sin movimientos aun',
-                                style: TextStyle(color: Color(0xFF6A7783)),
+                                style: TextStyle(color: AppTheme.subtle),
                               ),
                             ),
                           ),
@@ -424,7 +435,7 @@ class _TransactionTile extends StatelessWidget {
               isCredit ? const Color(0xFFE9F6EE) : const Color(0xFFFCEDEF),
           child: Icon(
             isCredit ? Icons.arrow_downward : Icons.arrow_upward,
-            color: isCredit ? const Color(0xFF1B734D) : const Color(0xFF8A2F43),
+            color: isCredit ? const Color(0xFF178E68) : AppTheme.danger,
             size: 18,
           ),
         ),
@@ -432,12 +443,12 @@ class _TransactionTile extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(
           dateFmt,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF6A7783)),
+          style: const TextStyle(fontSize: 12, color: AppTheme.subtle),
         ),
         trailing: Text(
           '${isCredit ? '+' : '-'}$amtFmt',
           style: TextStyle(
-            color: isCredit ? const Color(0xFF1B734D) : const Color(0xFF8A2F43),
+            color: isCredit ? const Color(0xFF178E68) : AppTheme.danger,
             fontWeight: FontWeight.w700,
             fontSize: 15,
           ),

@@ -46,8 +46,11 @@ jobs:
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
 
-      - name: Copy vercel config to build
-        run: cp turnoapp/vercel.json turnoapp/build/web/vercel.json
+      - name: Copy Vercel and legal static files
+        run: |
+          cp turnoapp/vercel.json turnoapp/build/web/vercel.json
+          cp turnoapp/web/privacy.html turnoapp/build/web/privacy.html
+          cp turnoapp/web/support.html turnoapp/build/web/support.html
 
       - name: Deploy to Vercel
         working-directory: turnoapp/build/web

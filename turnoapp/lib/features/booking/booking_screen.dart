@@ -15,6 +15,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+
+import '../../app/theme.dart';
 import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
 import '../../models/enums.dart';
@@ -26,6 +28,7 @@ import '../../services/profile_service.dart';
 import '../../services/wallet_service.dart';
 import '../../models/wallet.dart';
 import '../../shared/widgets/app_snackbar.dart';
+import '../../shared/widgets/decorative_background.dart';
 import '../../shared/widgets/loading_overlay.dart';
 
 class BookingScreen extends StatefulWidget {
@@ -176,132 +179,138 @@ class _BookingScreenState extends State<BookingScreen> {
       message: 'Procesando reserva...',
       child: Scaffold(
         appBar: AppBar(title: const Text('Detalle del turno')),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _ride == null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.directions_car_outlined,
-                            size: 52,
-                            color: Colors.grey.shade400,
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            'Este turno ya no esta disponible.',
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 12),
-                          OutlinedButton(
-                            onPressed: () => context.pop(),
-                            child: const Text('Volver'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-                    children: [
-                      _InfoSection(ride: _ride!),
-                      const SizedBox(height: 12),
-                      if (_driverProfile != null)
-                        _DriverProfileSection(profile: _driverProfile!),
-                      const SizedBox(height: 12),
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Resumen de pago',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 12),
-                              _PriceRow(
-                                  label: 'Precio por asiento', value: priceFmt),
-                              const Divider(),
-                              _PriceRow(
-                                label: 'Comision plataforma',
-                                value: NumberFormat.currency(
-                                  locale: 'es_CL',
-                                  symbol: '\$',
-                                  decimalDigits: 0,
-                                ).format(_ride?.platformFee ?? 0),
-                              ),
-                              _PriceRow(
-                                label: 'Neto conductor',
-                                value: NumberFormat.currency(
-                                  locale: 'es_CL',
-                                  symbol: '\$',
-                                  decimalDigits: 0,
-                                ).format(_ride?.driverNetAmount ?? price),
-                              ),
-                              _PriceRow(
-                                label: 'Total a retener',
-                                value: priceFmt,
-                                bold: true,
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color:
-                                      (_wallet?.balanceAvailable ?? 0) >= price
-                                          ? const Color(0xFFE9F6EE)
-                                          : const Color(0xFFFCEDEF),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  'Tu saldo actual: $balanceFmt',
-                                  style: TextStyle(
-                                    color: (_wallet?.balanceAvailable ?? 0) >=
-                                            price
-                                        ? const Color(0xFF1B734D)
-                                        : const Color(0xFF8A2F43),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'El flujo ahora es: conductor acepta -> en camino -> llego -> abordas -> viaje -> finaliza.',
-                                style: TextStyle(
-                                    fontSize: 12, color: Color(0xFF5F6E7C)),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Tiempo de espera recomendado: ${AppConstants.waitTimeMinutesNoShow} minutos en el punto de encuentro.',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF5F6E7C),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'TurnoApp actua como intermediario. Usa boton de panico y llama al 133 ante emergencias.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF8A2F43),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+        body: DecorativeBackground(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _ride == null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.directions_car_outlined,
+                              size: 52,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Este turno ya no esta disponible.',
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            OutlinedButton(
+                              onPressed: () => context.pop(),
+                              child: const Text('Volver'),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                      children: [
+                        _InfoSection(ride: _ride!),
+                        const SizedBox(height: 12),
+                        if (_driverProfile != null)
+                          _DriverProfileSection(profile: _driverProfile!),
+                        const SizedBox(height: 12),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Resumen de pago',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 12),
+                                _PriceRow(
+                                  label: 'Precio por asiento',
+                                  value: priceFmt,
+                                ),
+                                const Divider(),
+                                _PriceRow(
+                                  label: 'Comision plataforma',
+                                  value: NumberFormat.currency(
+                                    locale: 'es_CL',
+                                    symbol: '\$',
+                                    decimalDigits: 0,
+                                  ).format(_ride?.platformFee ?? 0),
+                                ),
+                                _PriceRow(
+                                  label: 'Neto conductor',
+                                  value: NumberFormat.currency(
+                                    locale: 'es_CL',
+                                    symbol: '\$',
+                                    decimalDigits: 0,
+                                  ).format(_ride?.driverNetAmount ?? price),
+                                ),
+                                _PriceRow(
+                                  label: 'Total a retener',
+                                  value: priceFmt,
+                                  bold: true,
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: (_wallet?.balanceAvailable ?? 0) >=
+                                            price
+                                        ? const Color(0xFFE9F6EE)
+                                        : const Color(0xFFFCEDEF),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    'Tu saldo actual: $balanceFmt',
+                                    style: TextStyle(
+                                      color: (_wallet?.balanceAvailable ?? 0) >=
+                                              price
+                                          ? const Color(0xFF1B734D)
+                                          : AppTheme.danger,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'El flujo ahora es: conductor acepta -> en camino -> llego -> abordas -> viaje -> finaliza.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.subtle,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Tiempo de espera recomendado: ${AppConstants.waitTimeMinutesNoShow} minutos en el punto de encuentro.',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.subtle,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'TurnoApp actua como intermediario. Usa boton de panico y llama al 133 ante emergencias.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.danger,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+        ),
         bottomNavigationBar: _ride == null
             ? null
             : SafeArea(
@@ -319,7 +328,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         child: Text(
                           'Turno sin cupos disponibles',
                           style:
-                              TextStyle(color: Color(0xFF8A2F43), fontSize: 12),
+                              TextStyle(color: AppTheme.danger, fontSize: 12),
                         ),
                       ),
                   ],
@@ -352,7 +361,7 @@ class _InfoSection extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE7F0F6),
+                    color: const Color(0xFFE7F3FF),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -426,7 +435,7 @@ class _DriverProfileSection extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 22,
-                  backgroundColor: const Color(0xFFE7F0F6),
+                  backgroundColor: const Color(0xFFE7F3FF),
                   backgroundImage: (profile.profilePhotoUrl != null &&
                           profile.profilePhotoUrl!.isNotEmpty)
                       ? NetworkImage(profile.profilePhotoUrl!)
@@ -449,7 +458,7 @@ class _DriverProfileSection extends StatelessWidget {
                         'Rating ${profile.ratingAvg.toStringAsFixed(2)} (${profile.ratingCount})',
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF6A7783),
+                          color: AppTheme.subtle,
                         ),
                       ),
                     ],

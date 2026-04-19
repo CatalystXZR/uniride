@@ -15,6 +15,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/theme.dart';
+
 class TurnoCard extends StatelessWidget {
   final String originCommune;
   final String universityName;
@@ -73,7 +75,7 @@ class TurnoCard extends StatelessWidget {
                     width: 34,
                     height: 34,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE6F1F7),
+                      color: const Color(0xFFE7F3FF),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -97,9 +99,10 @@ class TurnoCard extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0F6FA),
+                      color: const Color(0xFFEAF4FF),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -116,24 +119,27 @@ class TurnoCard extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                  const Icon(Icons.access_time,
+                      size: 14, color: AppTheme.subtle),
                   const SizedBox(width: 4),
                   Text('$dateStr  $timeStr',
-                      style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                      style: const TextStyle(
+                          color: AppTheme.subtle, fontSize: 13)),
                   const Spacer(),
                   Icon(
                     Icons.event_seat_outlined,
                     size: 14,
-                    color:
-                        seatsAvailable > 0 ? Colors.green : Colors.redAccent,
+                    color: seatsAvailable > 0
+                        ? const Color(0xFF178E68)
+                        : AppTheme.danger,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     '$seatsAvailable cupo${seatsAvailable == 1 ? '' : 's'}',
                     style: TextStyle(
                       color: seatsAvailable > 0
-                          ? Colors.green
-                          : Colors.redAccent,
+                          ? const Color(0xFF178E68)
+                          : AppTheme.danger,
                       fontSize: 13,
                     ),
                   ),
@@ -143,7 +149,7 @@ class TurnoCard extends StatelessWidget {
               Text(
                 universityName,
                 style: const TextStyle(
-                  color: Color(0xFF6A7783),
+                  color: AppTheme.subtle,
                   fontSize: 12,
                 ),
               ),
@@ -152,7 +158,7 @@ class TurnoCard extends StatelessWidget {
                 Text(
                   'Punto: $meetingPoint',
                   style: const TextStyle(
-                    color: Color(0xFF6A7783),
+                    color: AppTheme.subtle,
                     fontSize: 12,
                   ),
                 ),
@@ -162,7 +168,7 @@ class TurnoCard extends StatelessWidget {
                 Text(
                   'Comision: \$$platformFee · Neto conductor: \$$driverNetAmount${isRadial == true ? ' · Radial' : ''}',
                   style: const TextStyle(
-                    color: Color(0xFF6A7783),
+                    color: AppTheme.subtle,
                     fontSize: 12,
                   ),
                 ),

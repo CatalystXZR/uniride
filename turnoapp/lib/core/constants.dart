@@ -34,6 +34,10 @@ class AppConstants {
 
   // Legal and operations
   static const String termsVersion = 'v1.1-legal-strikes';
+  static const String privacyPolicyVersion = 'v1.0';
+  static const String privacyPolicyLastUpdated = '2026-04-19';
+  static const String supportEmail = 'soporte@turnoapp.app';
+  static const String supportResponseWindow = '24-48 horas habiles';
   static const int waitTimeMinutesNoShow = 10;
   static const int lateCancellationHours = 2;
   static const int strikeBanMonths = 2;

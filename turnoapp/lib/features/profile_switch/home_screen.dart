@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/theme.dart';
 import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
 import '../../models/enums.dart';
@@ -215,7 +216,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       const SizedBox(height: 4),
                       const Text(
                         'Estos datos son obligatorios para activar el modo conductor.',
-                        style: TextStyle(color: Color(0xFF6A7783)),
+                        style: TextStyle(color: AppTheme.subtle),
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -473,7 +474,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                     Text(
                                       'Suspendido hasta: ${DateFormat('d MMM y', 'es').format(profile!.suspendedUntil!)}',
                                       style: const TextStyle(
-                                        color: Color(0xFF8A2F43),
+                                        color: AppTheme.danger,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -496,7 +497,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             icon: Icons.add_circle_outline,
                             label: 'Publicar turno',
                             subtitle: 'Comparte tu ruta y define cupos',
-                            color: const Color(0xFF1E5B7A),
+                            color: AppTheme.primary,
                             onTap: () => context.push('/publish'),
                           ),
                           const SizedBox(height: 10),
@@ -504,7 +505,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             icon: Icons.directions_car_outlined,
                             label: 'Mis turnos publicados',
                             subtitle: 'Revisa pasajeros y estado de viajes',
-                            color: const Color(0xFF365D74),
+                            color: const Color(0xFF1760A3),
                             onTap: () => context.push('/driver-rides'),
                           ),
                         ] else ...[
@@ -512,7 +513,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             icon: Icons.search,
                             label: 'Buscar turno',
                             subtitle: 'Encuentra viajes por comuna y campus',
-                            color: const Color(0xFF1E5B7A),
+                            color: AppTheme.primary,
                             onTap: () => context.push('/search'),
                           ),
                           const SizedBox(height: 10),
@@ -521,7 +522,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             label: 'Mis reservas',
                             subtitle:
                                 'Sigue el estado del viaje y revisa historial',
-                            color: const Color(0xFF365D74),
+                            color: const Color(0xFF1760A3),
                             onTap: () => context.push('/my-rides'),
                           ),
                         ],
@@ -530,6 +531,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           onPressed: () => context.push('/terms'),
                           icon: const Icon(Icons.gavel_outlined),
                           label: const Text('Terminos y seguridad'),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => context.push('/privacy'),
+                                icon: const Icon(Icons.privacy_tip_outlined),
+                                label: const Text('Privacidad'),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => context.push('/support'),
+                                icon: const Icon(Icons.support_agent_outlined),
+                                label: const Text('Soporte'),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 10),
                         OutlinedButton.icon(
@@ -542,8 +563,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           },
                           icon: const Icon(Icons.emergency_outlined),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF8A2F43),
-                            side: const BorderSide(color: Color(0xFF8A2F43)),
+                            foregroundColor: AppTheme.danger,
+                            side: const BorderSide(color: AppTheme.danger),
                           ),
                           label: const Text('Boton de panico'),
                         ),
@@ -755,7 +776,7 @@ class _BalanceCard extends StatelessWidget {
             label: const Text('Recargar billetera'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF1E5B7A),
+              foregroundColor: AppTheme.primary,
             ),
           ),
         ],

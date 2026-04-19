@@ -28,6 +28,8 @@ import '../features/my_rides/my_rides_screen.dart';
 import '../features/my_rides/driver_rides_screen.dart';
 import '../features/my_rides/active_trip_screen.dart';
 import '../features/legal/terms_screen.dart';
+import '../features/legal/privacy_policy_screen.dart';
+import '../features/legal/support_screen.dart';
 import '../features/profile/edit_profile_screen.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -35,10 +37,18 @@ final GoRouter appRouter = GoRouter(
   redirect: (BuildContext context, GoRouterState state) {
     final session = SupabaseConfig.client.auth.currentSession;
     final isAuth = session != null;
+    const publicRoutes = {
+      '/login',
+      '/register',
+      '/terms',
+      '/privacy',
+      '/support',
+    };
+    final isPublicRoute = publicRoutes.contains(state.matchedLocation);
     final isOnAuth = state.matchedLocation == '/login' ||
         state.matchedLocation == '/register';
 
-    if (!isAuth && !isOnAuth) return '/login';
+    if (!isAuth && !isPublicRoute) return '/login';
     if (isAuth && isOnAuth) return '/home';
     return null;
   },
@@ -72,6 +82,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
         path: '/driver-rides', builder: (_, __) => const DriverRidesScreen()),
     GoRoute(path: '/terms', builder: (_, __) => const TermsScreen()),
+    GoRoute(path: '/privacy', builder: (_, __) => const PrivacyPolicyScreen()),
+    GoRoute(path: '/support', builder: (_, __) => const SupportScreen()),
     GoRoute(
         path: '/profile/edit', builder: (_, __) => const EditProfileScreen()),
   ],

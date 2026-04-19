@@ -17,12 +17,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/theme.dart';
 import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
 import '../../models/booking.dart';
 import '../../models/enums.dart';
 import '../../providers/my_rides_provider.dart';
 import '../../shared/widgets/app_snackbar.dart';
+import '../../shared/widgets/decorative_background.dart';
 
 class MyRidesScreen extends ConsumerStatefulWidget {
   const MyRidesScreen({super.key});
@@ -92,7 +94,8 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2F7D67)),
+              backgroundColor: const Color(0xFF178E68),
+            ),
             child: const Text('ME SUBI AL AUTO'),
           ),
         ],
@@ -145,7 +148,8 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8A2F43)),
+              backgroundColor: AppTheme.danger,
+            ),
             child: const Text('Cancelar reserva'),
           ),
         ],
@@ -259,40 +263,44 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
           ],
         ),
       ),
-      body: state.loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  active.isEmpty
-                      ? const _EmptyState(message: 'No tienes reservas activas')
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          itemCount: active.length,
-                          itemBuilder: (ctx, i) => _BookingCard(
-                            booking: active[i],
-                            onConfirmBoarding: _confirmBoarding,
-                            onCancelBooking: _cancelBooking,
-                            onReportNoShow: _reportNoShow,
-                            onOpenActiveTrip: _openActiveTrip,
+      body: DecorativeBackground(
+        child: state.loading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    active.isEmpty
+                        ? const _EmptyState(
+                            message: 'No tienes reservas activas',
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            itemCount: active.length,
+                            itemBuilder: (ctx, i) => _BookingCard(
+                              booking: active[i],
+                              onConfirmBoarding: _confirmBoarding,
+                              onCancelBooking: _cancelBooking,
+                              onReportNoShow: _reportNoShow,
+                              onOpenActiveTrip: _openActiveTrip,
+                            ),
                           ),
-                        ),
-                  history.isEmpty
-                      ? const _EmptyState(message: 'Sin historial aun')
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          itemCount: history.length,
-                          itemBuilder: (ctx, i) => _BookingCard(
-                            booking: history[i],
-                            onConfirmBoarding: null,
-                            onOpenActiveTrip: null,
+                    history.isEmpty
+                        ? const _EmptyState(message: 'Sin historial aun')
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            itemCount: history.length,
+                            itemBuilder: (ctx, i) => _BookingCard(
+                              booking: history[i],
+                              onConfirmBoarding: null,
+                              onOpenActiveTrip: null,
+                            ),
                           ),
-                        ),
-                ],
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 }
@@ -328,34 +336,34 @@ class _BookingCard extends StatelessWidget {
     String statusLabel;
     switch (booking.status) {
       case BookingStatus.reserved:
-        statusColor = const Color(0xFF1E5B7A);
+        statusColor = AppTheme.primary;
         statusLabel = 'Reservado';
         break;
       case BookingStatus.completed:
-        statusColor = const Color(0xFF2F7D67);
+        statusColor = const Color(0xFF178E68);
         statusLabel = 'Completado';
         break;
       case BookingStatus.cancelled:
-        statusColor = const Color(0xFF8A2F43);
+        statusColor = AppTheme.danger;
         statusLabel = 'Cancelado';
         break;
       case BookingStatus.noShow:
-        statusColor = const Color(0xFFC4871F);
+        statusColor = AppTheme.warning;
         statusLabel = 'No show';
         break;
     }
 
     final dispatchLabel = booking.dispatchLabel;
     final dispatchColor = switch (booking.dispatchStatus) {
-      BookingDispatchStatus.reserved => const Color(0xFF6A7783),
-      BookingDispatchStatus.accepted => const Color(0xFF1E5B7A),
-      BookingDispatchStatus.driverArriving => const Color(0xFF1E5B7A),
-      BookingDispatchStatus.driverArrived => const Color(0xFF2F7D67),
-      BookingDispatchStatus.passengerBoarded => const Color(0xFF2F7D67),
-      BookingDispatchStatus.inProgress => const Color(0xFF2F7D67),
-      BookingDispatchStatus.completed => const Color(0xFF365D74),
-      BookingDispatchStatus.cancelled => const Color(0xFF8A2F43),
-      BookingDispatchStatus.noShow => const Color(0xFFC4871F),
+      BookingDispatchStatus.reserved => AppTheme.subtle,
+      BookingDispatchStatus.accepted => AppTheme.primary,
+      BookingDispatchStatus.driverArriving => AppTheme.primary,
+      BookingDispatchStatus.driverArrived => const Color(0xFF178E68),
+      BookingDispatchStatus.passengerBoarded => const Color(0xFF178E68),
+      BookingDispatchStatus.inProgress => const Color(0xFF178E68),
+      BookingDispatchStatus.completed => const Color(0xFF1760A3),
+      BookingDispatchStatus.cancelled => AppTheme.danger,
+      BookingDispatchStatus.noShow => AppTheme.warning,
     };
 
     return Card(
@@ -398,7 +406,7 @@ class _BookingCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(dateFmt,
-                style: const TextStyle(color: Color(0xFF6A7783), fontSize: 13)),
+                style: const TextStyle(color: AppTheme.subtle, fontSize: 13)),
             const SizedBox(height: 4),
             Text(
               dispatchLabel,
@@ -413,7 +421,7 @@ class _BookingCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 'Conductor: ${booking.driverName ?? '-'} · Auto ${booking.driverVehicleModel ?? '-'} · Patente ${booking.driverVehiclePlate ?? '-'}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF6A7783)),
+                style: const TextStyle(fontSize: 12, color: AppTheme.subtle),
               ),
             ],
             if (booking.isReserved && onOpenActiveTrip != null) ...[
@@ -444,7 +452,8 @@ class _BookingCard extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                   ),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2F7D67)),
+                    backgroundColor: const Color(0xFF178E68),
+                  ),
                 ),
               ),
             ],
@@ -460,8 +469,8 @@ class _BookingCard extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: () => onCancelBooking!(booking),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF8A2F43),
-                    side: const BorderSide(color: Color(0xFF8A2F43)),
+                    foregroundColor: AppTheme.danger,
+                    side: const BorderSide(color: AppTheme.danger),
                   ),
                   child: const Text('Cancelar reserva'),
                 ),
@@ -482,8 +491,8 @@ class _BookingCard extends StatelessWidget {
                   onPressed: () => onReportNoShow!(booking),
                   icon: const Icon(Icons.warning_amber_outlined),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFC4871F),
-                    side: const BorderSide(color: Color(0xFFC4871F)),
+                    foregroundColor: AppTheme.warning,
+                    side: const BorderSide(color: AppTheme.warning),
                   ),
                   label: const Text('Conductor no llego (no-show)'),
                 ),
@@ -510,7 +519,7 @@ class _EmptyState extends StatelessWidget {
           Icon(Icons.confirmation_num_outlined,
               size: 64, color: Colors.grey.shade300),
           const SizedBox(height: 12),
-          Text(message, style: const TextStyle(color: Color(0xFF6A7783))),
+          Text(message, style: const TextStyle(color: AppTheme.subtle)),
         ],
       ),
     );

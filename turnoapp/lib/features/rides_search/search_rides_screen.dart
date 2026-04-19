@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/theme.dart';
 import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
 import '../../models/enums.dart';
@@ -120,9 +121,9 @@ class _SearchRidesScreenState extends ConsumerState<SearchRidesScreen>
               margin: const EdgeInsets.fromLTRB(14, 8, 14, 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: const Color(0xFFF8FBFF),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFD8E2EA)),
+                border: Border.all(color: AppTheme.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,7 +302,7 @@ class _FilterChipDropdown<T> extends StatelessWidget {
       child: Chip(
         label: Text(_displayLabel),
         avatar: value != null
-            ? const Icon(Icons.check_circle, size: 16, color: Color(0xFF1E5B7A))
+            ? const Icon(Icons.check_circle, size: 16, color: AppTheme.primary)
             : null,
         backgroundColor: value != null
             ? Theme.of(context).colorScheme.primaryContainer
