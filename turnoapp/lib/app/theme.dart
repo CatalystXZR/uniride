@@ -18,15 +18,15 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   AppTheme._();
 
-  static const Color primary = Color(0xFF1E5B7A);
-  static const Color primaryDark = Color(0xFF133C51);
-  static const Color accent = Color(0xFF2F7D67);
-  static const Color danger = Color(0xFFB6465C);
-  static const Color warning = Color(0xFFC4871F);
-  static const Color surface = Color(0xFFF2F5F8);
-  static const Color onSurface = Color(0xFF16212B);
-  static const Color subtle = Color(0xFF5F6E7C);
-  static const Color border = Color(0xFFD7E0E8);
+  static const Color primary = Color(0xFF1F9DFF);
+  static const Color primaryDark = Color(0xFF050D1B);
+  static const Color accent = Color(0xFF6EEBFF);
+  static const Color danger = Color(0xFFBA3E5A);
+  static const Color warning = Color(0xFFD39A2F);
+  static const Color surface = Color(0xFFF1F7FF);
+  static const Color onSurface = Color(0xFF0D1728);
+  static const Color subtle = Color(0xFF5C6F8B);
+  static const Color border = Color(0xFFCFE0F4);
 
   static ThemeData get light {
     final base = ThemeData(
@@ -61,16 +61,17 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         elevation: 0,
+        shadowColor: const Color(0x22000000),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: border),
         ),
-        color: Colors.white,
+        color: const Color(0xFFFCFEFF),
         margin: EdgeInsets.zero,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: const Color(0xFFF8FBFF),
         labelStyle: const TextStyle(
           color: subtle,
           fontWeight: FontWeight.w500,
@@ -136,20 +137,20 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: border),
         ),
-        backgroundColor: Colors.white,
-        selectedColor: const Color(0xFFDCECF4),
+        backgroundColor: const Color(0xFFF7FBFF),
+        selectedColor: const Color(0xFFDDF2FF),
         labelStyle: const TextStyle(
           color: onSurface,
           fontWeight: FontWeight.w600,
         ),
       ),
       dividerTheme: const DividerThemeData(
-        color: Color(0xFFE4EAF0),
+        color: Color(0xFFDCE6F3),
         thickness: 1,
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: onSurface,
+        backgroundColor: primaryDark,
         contentTextStyle: textTheme.bodyMedium?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w500,
@@ -158,7 +159,7 @@ class AppTheme {
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         showDragHandle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFFF7FBFF),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),

@@ -7,34 +7,62 @@ class DecorativeBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned(
-          top: -90,
-          right: -70,
-          child: _Blob(
-            size: 220,
-            colors: const [Color(0x332A6C8E), Color(0x112A6C8E)],
-          ),
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF040B17), Color(0xFF08152A), Color(0xFF0A1D36)],
         ),
-        Positioned(
-          top: 140,
-          left: -60,
-          child: _Blob(
-            size: 170,
-            colors: const [Color(0x222F7D67), Color(0x112F7D67)],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -120,
+            right: -90,
+            child: _Blob(
+              size: 280,
+              colors: const [Color(0x5536A8FF), Color(0x0036A8FF)],
+            ),
           ),
-        ),
-        Positioned(
-          bottom: -60,
-          right: -30,
-          child: _Blob(
-            size: 160,
-            colors: const [Color(0x22C4871F), Color(0x11C4871F)],
+          Positioned(
+            top: 120,
+            left: -90,
+            child: _Blob(
+              size: 230,
+              colors: const [Color(0x4448E5FF), Color(0x0048E5FF)],
+            ),
           ),
-        ),
-        child,
-      ],
+          Positioned(
+            bottom: -100,
+            right: -40,
+            child: _Blob(
+              size: 220,
+              colors: const [Color(0x446EEBFF), Color(0x006EEBFF)],
+            ),
+          ),
+          Positioned(
+            bottom: 110,
+            left: 24,
+            right: 24,
+            child: IgnorePointer(
+              child: Container(
+                height: 1,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0x00000000),
+                      Color(0x4D77D7FF),
+                      Color(0x00000000),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
     );
   }
 }

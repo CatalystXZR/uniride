@@ -572,7 +572,12 @@ class _RoleSwitchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final panel = const Color(0xFF0D1A2D);
+    final border = const Color(0xFF1D3E66);
+    final dim = const Color(0xFF9CB5D3);
+    final highlight = const Color(0xFF73D9FF);
     return Card(
+      color: panel,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -607,6 +612,7 @@ class _RoleSwitchCard extends StatelessWidget {
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -614,18 +620,18 @@ class _RoleSwitchCard extends StatelessWidget {
                         isDriver ? 'Modo Conductor' : 'Modo Pasajero',
                         style: TextStyle(
                           color: isDriver
-                              ? const Color(0xFFC4871F)
-                              : const Color(0xFF1E5B7A),
+                              ? const Color(0xFF8BE6FF)
+                              : const Color(0xFF49B9FF),
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       if (isDriver)
-                        const Text(
+                        Text(
                           'Requiere licencia vigente y terminos aceptados',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF6A7783),
+                            color: dim,
                           ),
                         ),
                     ],
@@ -635,46 +641,45 @@ class _RoleSwitchCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             if (photoUrl == null || photoUrl!.isEmpty)
-              const Text(
+              Text(
                 'Tip: agrega foto de perfil en editar perfil para generar mas confianza.',
-                style: TextStyle(fontSize: 11, color: Color(0xFF6A7783)),
+                style: TextStyle(fontSize: 11, color: dim),
               ),
             const SizedBox(height: 14),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFF4F8FB),
+                color: const Color(0xFF0A1423),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFD8E2EA)),
+                border: Border.all(color: border),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.directions_walk,
                     size: 18,
-                    color: !isDriver
-                        ? const Color(0xFF1E5B7A)
-                        : const Color(0xFF8D99A6),
+                    color: !isDriver ? const Color(0xFF49B9FF) : dim,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       isDriver ? 'Conductor' : 'Pasajero',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                   Switch(
                     value: isDriver,
                     onChanged: (_) => onToggle(),
-                    activeThumbColor: const Color(0xFFC4871F),
+                    activeThumbColor: highlight,
                   ),
                   Icon(
                     Icons.drive_eta,
                     size: 18,
-                    color: isDriver
-                        ? const Color(0xFFC4871F)
-                        : const Color(0xFF8D99A6),
+                    color: isDriver ? highlight : dim,
                   ),
                 ],
               ),
@@ -712,8 +717,15 @@ class _BalanceCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1E5B7A), Color(0xFF2A6C8E)],
+          colors: [Color(0xFF041227), Color(0xFF0E3A63), Color(0xFF1F8DE6)],
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x551073D6),
+            blurRadius: 28,
+            offset: Offset(0, 14),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -780,10 +792,14 @@ class _ActionButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             gradient: LinearGradient(
-              colors: [color, color.withValues(alpha: 0.88)],
+              colors: [
+                color.withValues(alpha: 0.92),
+                color.withValues(alpha: 0.68),
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
+            border: Border.all(color: const Color(0x3349B9FF)),
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),

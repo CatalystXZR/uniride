@@ -75,9 +75,9 @@ class _LoginScreenState extends State<LoginScreen> {
         body: DecoratedBox(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFEAF2F7), Color(0xFFF7FAFC)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF040B18), Color(0xFF0A1A31), Color(0xFF0D2848)],
             ),
           ),
           child: SafeArea(
@@ -93,9 +93,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         'TurnoApp',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.6,
+                              color: Colors.white,
                             ),
                       ),
                       const SizedBox(height: 8),
@@ -103,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         'Movilidad universitaria simple, segura y sin caos.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFF5F6E7C),
+                              color: const Color(0xFF9FBCDD),
                             ),
                       ),
                       const SizedBox(height: 22),
@@ -128,7 +132,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodySmall
-                                      ?.copyWith(color: const Color(0xFF5F6E7C)),
+                                      ?.copyWith(
+                                          color: const Color(0xFF5F6E7C)),
                                 ),
                                 const SizedBox(height: 18),
                                 TextFormField(
@@ -173,7 +178,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(height: 10),
                                 TextButton(
                                   onPressed: () => context.push('/register'),
-                                  child: const Text('No tienes cuenta? Registrate'),
+                                  child: const Text(
+                                      'No tienes cuenta? Registrate'),
                                 ),
                               ],
                             ),
