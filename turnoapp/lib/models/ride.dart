@@ -82,7 +82,7 @@ class Ride {
       direction: json['direction'] == 'to_campus'
           ? RideDirection.toCampus
           : RideDirection.fromCampus,
-      departureAt: DateTime.parse(json['departure_at'] as String),
+      departureAt: DateTime.parse(json['departure_at'] as String).toLocal(),
       seatPrice: (json['seat_price'] as int?) ?? 2000,
       platformFee: (json['platform_fee'] as int?) ?? 0,
       driverNetAmount: (json['driver_net_amount'] as int?) ??
@@ -92,9 +92,9 @@ class Ride {
       status: (json['status'] as String?) ?? 'active',
       cancelReason: json['cancel_reason'] as String?,
       cancelledAt: json['cancelled_at'] != null
-          ? DateTime.parse(json['cancelled_at'] as String)
+          ? DateTime.parse(json['cancelled_at'] as String).toLocal()
           : null,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       driverName: json['driver_name'] as String?,
       driverRating: (json['driver_rating'] as num?)?.toDouble(),
       driverRatingCount: (json['driver_rating_count'] as num?)?.toInt(),
@@ -112,7 +112,7 @@ class Ride {
         'is_radial': isRadial,
         'direction':
             direction == RideDirection.toCampus ? 'to_campus' : 'from_campus',
-        'departure_at': departureAt.toIso8601String(),
+        'departure_at': departureAt.toUtc().toIso8601String(),
         'seat_price': seatPrice,
         'platform_fee': platformFee,
         'driver_net_amount': driverNetAmount,

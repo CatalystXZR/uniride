@@ -192,6 +192,16 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
       return;
     }
 
+    final departureLocal = _departureAt!.toLocal();
+    if (!departureLocal.isAfter(DateTime.now())) {
+      AppSnackbar.show(
+        context,
+        'La hora del turno debe ser futura.',
+        isError: true,
+      );
+      return;
+    }
+
     setState(() => _loading = true);
     try {
       if (!(_profile?.acceptedTerms ?? false)) {
@@ -260,7 +270,7 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
   @override
   Widget build(BuildContext context) {
     final departureFmt = _departureAt != null
-        ? DateFormat('EEE d MMM, HH:mm', 'es').format(_departureAt!)
+        ? DateFormat('EEE d MMM, HH:mm', 'es').format(_departureAt!.toLocal())
         : 'Seleccionar';
     final directionLabel =
         _direction == RideDirection.toCampus ? 'Hacia campus' : 'Desde campus';

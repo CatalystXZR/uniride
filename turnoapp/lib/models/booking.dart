@@ -154,38 +154,38 @@ class Booking {
         (json['dispatch_status'] as String?) ?? 'reserved',
       ),
       confirmedAt: json['confirmed_at'] != null
-          ? DateTime.parse(json['confirmed_at'] as String)
+          ? DateTime.parse(json['confirmed_at'] as String).toLocal()
           : null,
       reportedNoShowAt: json['reported_no_show_at'] != null
-          ? DateTime.parse(json['reported_no_show_at'] as String)
+          ? DateTime.parse(json['reported_no_show_at'] as String).toLocal()
           : null,
       noShowNotes: json['no_show_notes'] as String?,
       driverAcceptedAt: json['driver_accepted_at'] != null
-          ? DateTime.parse(json['driver_accepted_at'] as String)
+          ? DateTime.parse(json['driver_accepted_at'] as String).toLocal()
           : null,
       driverArrivingAt: json['driver_arriving_at'] != null
-          ? DateTime.parse(json['driver_arriving_at'] as String)
+          ? DateTime.parse(json['driver_arriving_at'] as String).toLocal()
           : null,
       driverArrivedAt: json['driver_arrived_at'] != null
-          ? DateTime.parse(json['driver_arrived_at'] as String)
+          ? DateTime.parse(json['driver_arrived_at'] as String).toLocal()
           : null,
       passengerBoardedAt: json['passenger_boarded_at'] != null
-          ? DateTime.parse(json['passenger_boarded_at'] as String)
+          ? DateTime.parse(json['passenger_boarded_at'] as String).toLocal()
           : null,
       tripStartedAt: json['trip_started_at'] != null
-          ? DateTime.parse(json['trip_started_at'] as String)
+          ? DateTime.parse(json['trip_started_at'] as String).toLocal()
           : null,
       tripCompletedAt: json['trip_completed_at'] != null
-          ? DateTime.parse(json['trip_completed_at'] as String)
+          ? DateTime.parse(json['trip_completed_at'] as String).toLocal()
           : null,
       cancelledAt: json['cancelled_at'] != null
-          ? DateTime.parse(json['cancelled_at'] as String)
+          ? DateTime.parse(json['cancelled_at'] as String).toLocal()
           : null,
       cancelReason: json['cancel_reason'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       rideOriginCommune: json['ride_origin_commune'] as String?,
       rideDepartureAt: json['ride_departure_at'] != null
-          ? DateTime.parse(json['ride_departure_at'] as String)
+          ? DateTime.parse(json['ride_departure_at'] as String).toLocal()
           : null,
       universityName: json['university_name'] as String?,
       campusName: json['campus_name'] as String?,

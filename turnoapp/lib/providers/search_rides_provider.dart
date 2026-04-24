@@ -49,9 +49,8 @@ class SearchRidesState {
       selectedCampusId: selectedCampusId ?? this.selectedCampusId,
       selectedDate: clearDate ? null : (selectedDate ?? this.selectedDate),
       campuses: campuses ?? this.campuses,
-      campusesError: clearCampusesError
-          ? null
-          : (campusesError ?? this.campusesError),
+      campusesError:
+          clearCampusesError ? null : (campusesError ?? this.campusesError),
       loadingCampuses: loadingCampuses ?? this.loadingCampuses,
       results: results ?? this.results,
       loading: loading ?? this.loading,
@@ -120,7 +119,10 @@ class SearchRidesNotifier extends StateNotifier<SearchRidesState> {
   }
 
   void setDate(DateTime? value) {
-    state = state.copyWith(selectedDate: value);
+    state = state.copyWith(
+      selectedDate:
+          value == null ? null : DateTime(value.year, value.month, value.day),
+    );
   }
 
   void clearFilters() {
@@ -137,5 +139,5 @@ class SearchRidesNotifier extends StateNotifier<SearchRidesState> {
 
 final searchRidesProvider =
     StateNotifierProvider<SearchRidesNotifier, SearchRidesState>(
-      (ref) => SearchRidesNotifier(ref),
-    );
+  (ref) => SearchRidesNotifier(ref),
+);
