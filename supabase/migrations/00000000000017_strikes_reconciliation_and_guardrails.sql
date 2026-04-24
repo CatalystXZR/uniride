@@ -172,7 +172,7 @@ create policy "rides_driver_insert" on rides
   for insert
   with check (
     auth.uid() = driver_id
-    and departure_at > now()
+    and departure_at > timezone('America/Santiago', now())
     and exists (
       select 1
       from users_profile up

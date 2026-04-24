@@ -185,7 +185,7 @@ class Booking {
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       rideOriginCommune: json['ride_origin_commune'] as String?,
       rideDepartureAt: json['ride_departure_at'] != null
-          ? DateTime.parse(json['ride_departure_at'] as String).toLocal()
+          ? DateTime.parse(json['ride_departure_at'] as String)
           : null,
       universityName: json['university_name'] as String?,
       campusName: json['campus_name'] as String?,
