@@ -17,7 +17,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'core/supabase_client.dart';
 import 'app/app.dart';
+import 'app/theme.dart';
 import 'core/error_mapper.dart';
+import 'services/notification_service.dart';
 import 'shared/widgets/app_snackbar.dart';
 
 Future<void> main() async {
@@ -29,6 +31,7 @@ Future<void> main() async {
   try {
     SupabaseConfig.ensureConfigured();
     await SupabaseConfig.initialize();
+    await NotificationService.instance.initialize();
   } catch (_) {
     runApp(const _ConfigurationErrorApp());
     return;
@@ -80,7 +83,7 @@ class _ConfigurationErrorApp extends StatelessWidget {
                                 'Faltan SUPABASE_URL y SUPABASE_ANON_KEY en --dart-define.',
                           ),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: Color(0xFF5F6E7C)),
+                          style: const TextStyle(color: AppTheme.subtle),
                         ),
                         const SizedBox(height: 14),
                         SelectableText(

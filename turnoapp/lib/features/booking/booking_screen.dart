@@ -280,7 +280,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                 ),
                                 const Divider(),
                                 _PriceRow(
-                                  label: 'Comision plataforma',
+                                  label: 'Comision pasajero (incluida)',
                                   value: NumberFormat.currency(
                                     locale: 'es_CL',
                                     symbol: '\$',
@@ -288,7 +288,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                   ).format(_ride?.platformFee ?? 0),
                                 ),
                                 _PriceRow(
-                                  label: 'Neto conductor',
+                                  label: 'Neto conductor (sin descuento extra)',
                                   value: NumberFormat.currency(
                                     locale: 'es_CL',
                                     symbol: '\$',
@@ -601,7 +601,7 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF6B7884)),
+        Icon(icon, size: 16, color: AppTheme.subtle),
         const SizedBox(width: 8),
         Expanded(child: Text(label, style: const TextStyle(fontSize: 14))),
       ],

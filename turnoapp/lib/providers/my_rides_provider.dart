@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/booking.dart';
+import '../services/booking_notification_service.dart';
 import 'service_providers.dart';
 
 class MyRidesState {
@@ -28,6 +29,7 @@ class MyRidesNotifier extends StateNotifier<MyRidesState> {
     state = state.copyWith(loading: true);
     final service = _ref.read(bookingServiceProvider);
     final rows = await service.getMyBookings();
+    await BookingNotificationService.instance.syncPassengerBookings(rows);
     state = state.copyWith(bookings: rows, loading: false);
   }
 

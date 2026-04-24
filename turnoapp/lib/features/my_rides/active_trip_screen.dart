@@ -7,7 +7,11 @@ import '../../core/error_mapper.dart';
 import '../../models/booking.dart';
 import '../../models/enums.dart';
 import '../../providers/my_rides_provider.dart';
+import '../../services/favorites_service.dart';
+import '../../services/review_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
+import '../../shared/widgets/loading_overlay.dart';
+import '../../shared/widgets/review_dialog.dart';
 
 class ActiveTripScreen extends ConsumerStatefulWidget {
   final String bookingId;
@@ -19,6 +23,34 @@ class ActiveTripScreen extends ConsumerStatefulWidget {
 }
 
 class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
+  final _reviewService = ReviewService();
+  final _favoritesService = FavoritesService();
+  bool _busy = false;
+  String? _busyMessage;
+
+  Future<void> _runBusy(
+    String message,
+    Future<void> Function() action,
+  ) async {
+    if (_busy) return;
+    if (mounted) {
+      setState(() {
+        _busy = true;
+        _busyMessage = message;
+      });
+    }
+    try {
+      await action();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _busyMessage = null;
+        });
+      }
+    }
+  }
+
   Booking? _bookingFromState() {
     final state = ref.watch(myRidesProvider);
     try {
@@ -67,21 +99,95 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    try {
-      await ref.read(myRidesProvider.notifier).confirmBoarding(booking.id);
-      if (!mounted) return;
-      AppSnackbar.show(context, 'Abordaje confirmado.');
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackbar.show(
-        context,
-        AppErrorMapper.toMessage(
-          e,
-          fallback: 'No pudimos confirmar tu abordaje.',
-        ),
-        isError: true,
-      );
-    }
+    await _runBusy('Confirmando abordaje...', () async {
+      try {
+        await ref.read(myRidesProvider.notifier).confirmBoarding(booking.id);
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Abordaje confirmado.');
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos confirmar tu abordaje.',
+          ),
+          isError: true,
+        );
+      }
+    });
+  }
+
+  Future<void> _toggleFavoriteDriver(Booking booking) async {
+    final driverId = booking.driverId;
+    if (driverId == null) return;
+    await _runBusy('Actualizando favoritos...', () async {
+      try {
+        final isFav = await _favoritesService.toggleFavorite(driverId);
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          isFav
+              ? 'Conductor agregado a favoritos.'
+              : 'Conductor eliminado de favoritos.',
+        );
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos actualizar favoritos.',
+          ),
+          isError: true,
+        );
+      }
+    });
+  }
+
+  Future<void> _reviewDriver(Booking booking) async {
+    await _runBusy('Publicando resena...', () async {
+      try {
+        final already = await _reviewService.hasReviewForBooking(booking.id);
+        if (already) {
+          if (!mounted) return;
+          AppSnackbar.show(context, 'Ya enviaste una resena para este viaje.');
+          return;
+        }
+
+        if (!mounted) return;
+        final result = await showDialog<Map<String, dynamic>>(
+          context: context,
+          builder: (_) => const ReviewDialog(
+            title: 'Calificar conductor',
+            subtitle:
+                'Tu referencia sera publica para ayudar a otros pasajeros.',
+            confirmLabel: 'Publicar resena',
+          ),
+        );
+        if (result == null) return;
+
+        await _reviewService.submitReview(
+          bookingId: booking.id,
+          stars: (result['stars'] as int?) ?? 5,
+          comment: (result['comment'] as String?)?.trim(),
+        );
+
+        await _refresh();
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Resena publicada correctamente.');
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos publicar la resena.',
+          ),
+          isError: true,
+        );
+      }
+    });
   }
 
   @override
@@ -155,180 +261,215 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
 
     final canConfirmBoarding = booking.canPassengerConfirmBoarding;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Viaje activo'),
-        actions: [
-          IconButton(
-            onPressed: _refresh,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
-          children: [
-            if (booking.dispatchStatus == BookingDispatchStatus.cancelled ||
-                booking.dispatchStatus == BookingDispatchStatus.noShow) ...[
-              Card(
-                color: const Color(0xFFFFF3F6),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    booking.dispatchStatus == BookingDispatchStatus.cancelled
-                        ? 'Este viaje fue cancelado.'
-                        : 'Este viaje fue marcado como no-show.',
-                    style: const TextStyle(
-                      color: AppTheme.danger,
-                      fontWeight: FontWeight.w700,
+    return LoadingOverlay(
+      isLoading: _busy,
+      message: _busyMessage,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Viaje activo'),
+          actions: [
+            IconButton(
+              onPressed: _refresh,
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: _refresh,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+            children: [
+              if (booking.dispatchStatus == BookingDispatchStatus.cancelled ||
+                  booking.dispatchStatus == BookingDispatchStatus.noShow) ...[
+                Card(
+                  color: const Color(0xFFFFF3F6),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      booking.dispatchStatus == BookingDispatchStatus.cancelled
+                          ? 'Este viaje fue cancelado.'
+                          : 'Este viaje fue marcado como no-show.',
+                      style: const TextStyle(
+                        color: AppTheme.danger,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        booking.dispatchLabel,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${booking.rideOriginCommune ?? '-'} · ${booking.campusName ?? '-'}',
+                        style: const TextStyle(color: AppTheme.subtle),
+                      ),
+                      if (booking.driverName != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Conductor: ${booking.driverName}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                      if (booking.driverVehicleModel != null ||
+                          booking.driverVehiclePlate != null)
+                        Text(
+                          'Auto ${booking.driverVehicleModel ?? '-'} · Patente ${booking.driverVehiclePlate ?? '-'}',
+                          style: const TextStyle(color: AppTheme.subtle),
+                        ),
+                      if (booking.driverEmergencyContact != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Contacto conductor: ${booking.driverEmergencyContact}',
+                          style: const TextStyle(color: AppTheme.subtle),
+                        ),
+                      ],
+                      if ((booking.driverRating ?? 0) > 0) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Rating ${(booking.driverRating ?? 5).toStringAsFixed(2)} (${booking.driverRatingCount ?? 0})',
+                          style: const TextStyle(color: AppTheme.subtle),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
               const SizedBox(height: 12),
-            ],
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      booking.dispatchLabel,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.primary,
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Progreso del viaje',
+                        style: TextStyle(fontWeight: FontWeight.w700),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${booking.rideOriginCommune ?? '-'} · ${booking.campusName ?? '-'}',
-                      style: const TextStyle(color: AppTheme.subtle),
-                    ),
-                    if (booking.driverName != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        'Conductor: ${booking.driverName}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                    if (booking.driverVehicleModel != null ||
-                        booking.driverVehiclePlate != null)
-                      Text(
-                        'Auto ${booking.driverVehicleModel ?? '-'} · Patente ${booking.driverVehiclePlate ?? '-'}',
-                        style: const TextStyle(color: AppTheme.subtle),
-                      ),
-                    if (booking.driverEmergencyContact != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Contacto conductor: ${booking.driverEmergencyContact}',
-                        style: const TextStyle(color: AppTheme.subtle),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Progreso del viaje',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 10),
-                    ...statusItems.map(
-                      (step) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: [
-                            Icon(
-                              step.done
-                                  ? Icons.check_circle
-                                  : Icons.radio_button_unchecked,
-                              size: 18,
-                              color: step.done
-                                  ? const Color(0xFF178E68)
-                                  : const Color(0xFF9AA8B5),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(step.label),
-                          ],
+                      const SizedBox(height: 10),
+                      ...statusItems.map(
+                        (step) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            children: [
+                              Icon(
+                                step.done
+                                    ? Icons.check_circle
+                                    : Icons.radio_button_unchecked,
+                                size: 18,
+                                color: step.done
+                                    ? const Color(0xFF178E68)
+                                    : const Color(0xFF9AA8B5),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(step.label),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              color: const Color(0xFFFFF3F6),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Seguridad',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Si hay emergencia, llama al ${AppConstants.emergencyPhoneCL} de inmediato.',
-                      style: const TextStyle(color: AppTheme.danger),
-                    ),
-                  ],
+              const SizedBox(height: 12),
+              Card(
+                color: const Color(0xFFFFF3F6),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Seguridad',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Si hay emergencia, llama al ${AppConstants.emergencyPhoneCL} de inmediato.',
+                        style: const TextStyle(color: AppTheme.danger),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (canConfirmBoarding)
+        bottomNavigationBar: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (canConfirmBoarding)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _confirmBoarding(booking),
+                    icon: const Icon(Icons.directions_car),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF178E68),
+                      foregroundColor: Colors.white,
+                    ),
+                    label: const Text('ME SUBI AL AUTO'),
+                  ),
+                ),
+              if (canConfirmBoarding) const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _confirmBoarding(booking),
-                  icon: const Icon(Icons.directions_car),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF178E68),
-                    foregroundColor: Colors.white,
+                child: OutlinedButton.icon(
+                  onPressed: () => _toggleFavoriteDriver(booking),
+                  icon: const Icon(Icons.favorite_outline),
+                  label: const Text('Agregar conductor a favoritos'),
+                ),
+              ),
+              if (booking.isCompleted) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _reviewDriver(booking),
+                    icon: const Icon(Icons.star_outline),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    label: const Text('Calificar conductor'),
                   ),
-                  label: const Text('ME SUBI AL AUTO'),
+                ),
+              ],
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    AppSnackbar.show(
+                      context,
+                      'Emergencia: llama al ${AppConstants.emergencyPhoneCL}',
+                      isError: true,
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.danger,
+                    side: const BorderSide(color: AppTheme.danger),
+                  ),
+                  icon: const Icon(Icons.emergency_outlined),
+                  label: const Text('Boton de emergencia'),
                 ),
               ),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  AppSnackbar.show(
-                    context,
-                    'Emergencia: llama al ${AppConstants.emergencyPhoneCL}',
-                    isError: true,
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.danger,
-                  side: const BorderSide(color: AppTheme.danger),
-                ),
-                icon: const Icon(Icons.emergency_outlined),
-                label: const Text('Boton de emergencia'),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

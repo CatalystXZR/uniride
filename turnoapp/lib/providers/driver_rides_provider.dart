@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/booking.dart';
 import '../models/ride.dart';
+import '../services/booking_notification_service.dart';
 import 'service_providers.dart';
 
 class DriverRidesState {
@@ -48,6 +49,8 @@ class DriverRidesNotifier extends StateNotifier<DriverRidesState> {
       bookings: results[1] as List<Booking>,
       loading: false,
     );
+    await BookingNotificationService.instance
+        .syncDriverBookings(results[1] as List<Booking>);
   }
 
   Future<void> cancelRide(String rideId, {required String reason}) async {

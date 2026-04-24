@@ -14,6 +14,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../app/theme.dart';
 import '../../core/error_mapper.dart';
 import '../../services/auth_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
@@ -132,8 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodySmall
-                                      ?.copyWith(
-                                          color: const Color(0xFF5F6E7C)),
+                                      ?.copyWith(color: AppTheme.subtle),
                                 ),
                                 const SizedBox(height: 18),
                                 TextFormField(

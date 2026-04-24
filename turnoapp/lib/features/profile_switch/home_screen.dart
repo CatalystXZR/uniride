@@ -486,10 +486,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         const SizedBox(height: 18),
                         Text(
                           'Acciones principales',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
                         ),
                         const SizedBox(height: 10),
                         if (isDriver) ...[

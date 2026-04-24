@@ -26,6 +26,7 @@ import '../../services/favorites_service.dart';
 import '../../services/review_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/decorative_background.dart';
+import '../../shared/widgets/loading_overlay.dart';
 import '../../shared/widgets/review_dialog.dart';
 
 class DriverRidesScreen extends ConsumerStatefulWidget {
@@ -40,6 +41,31 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
   final _reviewService = ReviewService();
   final _favoritesService = FavoritesService();
   late TabController _tabController;
+  bool _busy = false;
+  String? _busyMessage;
+
+  Future<void> _runBusy(
+    String message,
+    Future<void> Function() action,
+  ) async {
+    if (_busy) return;
+    if (mounted) {
+      setState(() {
+        _busy = true;
+        _busyMessage = message;
+      });
+    }
+    try {
+      await action();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _busyMessage = null;
+        });
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -116,49 +142,53 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
       return;
     }
 
-    try {
-      await ref.read(driverRidesProvider.notifier).cancelRide(
-            ride.id,
-            reason: reasonController.text.trim().isEmpty
-                ? 'cancelled_by_driver'
-                : reasonController.text.trim(),
-          );
-      if (!mounted) return;
-      AppSnackbar.show(
-        context,
-        'Turno cancelado. Reembolsos aplicados y strike evaluado.',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackbar.show(
-        context,
-        AppErrorMapper.toMessage(
-          e,
-          fallback: 'No pudimos cancelar el turno en este momento.',
-        ),
-        isError: true,
-      );
-    } finally {
-      reasonController.dispose();
-    }
+    await _runBusy('Cancelando turno...', () async {
+      try {
+        await ref.read(driverRidesProvider.notifier).cancelRide(
+              ride.id,
+              reason: reasonController.text.trim().isEmpty
+                  ? 'cancelled_by_driver'
+                  : reasonController.text.trim(),
+            );
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          'Turno cancelado. Reembolsos aplicados y strike evaluado.',
+        );
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos cancelar el turno en este momento.',
+          ),
+          isError: true,
+        );
+      } finally {
+        reasonController.dispose();
+      }
+    });
   }
 
   Future<void> _acceptBooking(Booking booking) async {
-    try {
-      await ref.read(driverRidesProvider.notifier).acceptBooking(booking.id);
-      if (!mounted) return;
-      AppSnackbar.show(context, 'Reserva aceptada.');
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackbar.show(
-        context,
-        AppErrorMapper.toMessage(
-          e,
-          fallback: 'No pudimos aceptar la reserva.',
-        ),
-        isError: true,
-      );
-    }
+    await _runBusy('Aceptando reserva...', () async {
+      try {
+        await ref.read(driverRidesProvider.notifier).acceptBooking(booking.id);
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Reserva aceptada.');
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos aceptar la reserva.',
+          ),
+          isError: true,
+        );
+      }
+    });
   }
 
   Future<void> _rejectBooking(Booking booking) async {
@@ -204,163 +234,178 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
       return;
     }
 
-    try {
-      await ref.read(driverRidesProvider.notifier).rejectBooking(
-            booking.id,
-            reason: reasonController.text.trim().isEmpty
-                ? null
-                : reasonController.text.trim(),
-          );
-      if (!mounted) return;
-      AppSnackbar.show(context, 'Reserva rechazada y reembolsada.');
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackbar.show(
-        context,
-        AppErrorMapper.toMessage(
-          e,
-          fallback: 'No pudimos rechazar la reserva.',
-        ),
-        isError: true,
-      );
-    } finally {
-      reasonController.dispose();
-    }
+    await _runBusy('Rechazando reserva...', () async {
+      try {
+        await ref.read(driverRidesProvider.notifier).rejectBooking(
+              booking.id,
+              reason: reasonController.text.trim().isEmpty
+                  ? null
+                  : reasonController.text.trim(),
+            );
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Reserva rechazada y reembolsada.');
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos rechazar la reserva.',
+          ),
+          isError: true,
+        );
+      } finally {
+        reasonController.dispose();
+      }
+    });
   }
 
   Future<void> _markArriving(Booking booking) async {
-    try {
-      await ref.read(driverRidesProvider.notifier).markArriving(booking.id);
-      if (!mounted) return;
-      AppSnackbar.show(context, 'Estado actualizado: en camino.');
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackbar.show(
-        context,
-        AppErrorMapper.toMessage(
-          e,
-          fallback: 'No pudimos actualizar a en camino.',
-        ),
-        isError: true,
-      );
-    }
+    await _runBusy('Actualizando estado...', () async {
+      try {
+        await ref.read(driverRidesProvider.notifier).markArriving(booking.id);
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Estado actualizado: en camino.');
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos actualizar a en camino.',
+          ),
+          isError: true,
+        );
+      }
+    });
   }
 
   Future<void> _markArrived(Booking booking) async {
-    try {
-      await ref.read(driverRidesProvider.notifier).markArrived(booking.id);
-      if (!mounted) return;
-      AppSnackbar.show(context, 'Estado actualizado: conductor llego.');
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackbar.show(
-        context,
-        AppErrorMapper.toMessage(
-          e,
-          fallback: 'No pudimos actualizar llegada.',
-        ),
-        isError: true,
-      );
-    }
+    await _runBusy('Actualizando estado...', () async {
+      try {
+        await ref.read(driverRidesProvider.notifier).markArrived(booking.id);
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Estado actualizado: conductor llego.');
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos actualizar llegada.',
+          ),
+          isError: true,
+        );
+      }
+    });
   }
 
   Future<void> _startTrip(Booking booking) async {
-    try {
-      await ref.read(driverRidesProvider.notifier).startTrip(booking.id);
-      if (!mounted) return;
-      AppSnackbar.show(context, 'Viaje iniciado.');
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackbar.show(
-        context,
-        AppErrorMapper.toMessage(
-          e,
-          fallback: 'No pudimos iniciar el viaje.',
-        ),
-        isError: true,
-      );
-    }
+    await _runBusy('Iniciando viaje...', () async {
+      try {
+        await ref.read(driverRidesProvider.notifier).startTrip(booking.id);
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Viaje iniciado.');
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos iniciar el viaje.',
+          ),
+          isError: true,
+        );
+      }
+    });
   }
 
   Future<void> _completeTrip(Booking booking) async {
-    try {
-      await ref.read(driverRidesProvider.notifier).completeTrip(booking.id);
-      if (!mounted) return;
-      AppSnackbar.show(context, 'Viaje finalizado y liquidado.');
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackbar.show(
-        context,
-        AppErrorMapper.toMessage(
-          e,
-          fallback: 'No pudimos finalizar el viaje.',
-        ),
-        isError: true,
-      );
-    }
+    await _runBusy('Finalizando viaje...', () async {
+      try {
+        await ref.read(driverRidesProvider.notifier).completeTrip(booking.id);
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Viaje finalizado y liquidado.');
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos finalizar el viaje.',
+          ),
+          isError: true,
+        );
+      }
+    });
   }
 
   Future<void> _toggleFavoritePassenger(Booking booking) async {
-    try {
-      final isFav = await _favoritesService.toggleFavorite(booking.passengerId);
-      if (!mounted) return;
-      AppSnackbar.show(
-        context,
-        isFav
-            ? 'Pasajero agregado a favoritos.'
-            : 'Pasajero eliminado de favoritos.',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackbar.show(
-        context,
-        AppErrorMapper.toMessage(
-          e,
-          fallback: 'No pudimos actualizar favoritos.',
-        ),
-        isError: true,
-      );
-    }
+    await _runBusy('Actualizando favoritos...', () async {
+      try {
+        final isFav =
+            await _favoritesService.toggleFavorite(booking.passengerId);
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          isFav
+              ? 'Pasajero agregado a favoritos.'
+              : 'Pasajero eliminado de favoritos.',
+        );
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos actualizar favoritos.',
+          ),
+          isError: true,
+        );
+      }
+    });
   }
 
   Future<void> _reviewPassenger(Booking booking) async {
-    try {
-      final already = await _reviewService.hasReviewForBooking(booking.id);
-      if (already) {
+    await _runBusy('Publicando resena...', () async {
+      try {
+        final already = await _reviewService.hasReviewForBooking(booking.id);
+        if (already) {
+          if (!mounted) return;
+          AppSnackbar.show(context, 'Ya enviaste una resena para este viaje.');
+          return;
+        }
         if (!mounted) return;
-        AppSnackbar.show(context, 'Ya enviaste una resena para este viaje.');
-        return;
+        final result = await showDialog<Map<String, dynamic>>(
+          context: context,
+          builder: (_) => const ReviewDialog(
+            title: 'Calificar pasajero',
+            subtitle:
+                'Tu referencia sera publica para ayudar a otros conductores.',
+            confirmLabel: 'Publicar resena',
+          ),
+        );
+        if (result == null) return;
+        await _reviewService.submitReview(
+          bookingId: booking.id,
+          stars: (result['stars'] as int?) ?? 5,
+          comment: (result['comment'] as String?)?.trim(),
+        );
+        await _load();
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Resena publicada correctamente.');
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos publicar la resena.',
+          ),
+          isError: true,
+        );
       }
-      if (!mounted) return;
-      final result = await showDialog<Map<String, dynamic>>(
-        context: context,
-        builder: (_) => const ReviewDialog(
-          title: 'Calificar pasajero',
-          subtitle:
-              'Tu referencia sera publica para ayudar a otros conductores.',
-          confirmLabel: 'Publicar resena',
-        ),
-      );
-      if (result == null) return;
-      await _reviewService.submitReview(
-        bookingId: booking.id,
-        stars: (result['stars'] as int?) ?? 5,
-        comment: (result['comment'] as String?)?.trim(),
-      );
-      await _load();
-      if (!mounted) return;
-      AppSnackbar.show(context, 'Resena publicada correctamente.');
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackbar.show(
-        context,
-        AppErrorMapper.toMessage(
-          e,
-          fallback: 'No pudimos publicar la resena.',
-        ),
-        isError: true,
-      );
-    }
+    });
   }
 
   @override
@@ -369,69 +414,73 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
     final activeRides = state.rides.where((r) => r.isActive).toList();
     final pastRides = state.rides.where((r) => !r.isActive).toList();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mis turnos'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Activos'),
-            Tab(text: 'Pasajeros'),
-          ],
+    return LoadingOverlay(
+      isLoading: _busy,
+      message: _busyMessage,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Mis turnos'),
+          bottom: TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(text: 'Activos'),
+              Tab(text: 'Pasajeros'),
+            ],
+          ),
         ),
-      ),
-      body: DecorativeBackground(
-        child: state.loading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    activeRides.isEmpty && pastRides.isEmpty
-                        ? const _EmptyState(
-                            message: 'No has publicado turnos aun',
-                          )
-                        : ListView(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            children: [
-                              if (activeRides.isNotEmpty) ...[
-                                const _SectionHeader(title: 'Activos'),
-                                ...activeRides.map(
-                                  (r) => _RideCard(
-                                    ride: r,
-                                    onCancel: () => _cancelRide(r),
+        body: DecorativeBackground(
+          child: state.loading
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      activeRides.isEmpty && pastRides.isEmpty
+                          ? const _EmptyState(
+                              message: 'No has publicado turnos aun',
+                            )
+                          : ListView(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              children: [
+                                if (activeRides.isNotEmpty) ...[
+                                  const _SectionHeader(title: 'Activos'),
+                                  ...activeRides.map(
+                                    (r) => _RideCard(
+                                      ride: r,
+                                      onCancel: () => _cancelRide(r),
+                                    ),
                                   ),
-                                ),
+                                ],
+                                if (pastRides.isNotEmpty) ...[
+                                  const _SectionHeader(title: 'Historial'),
+                                  ...pastRides.map((r) => _RideCard(ride: r)),
+                                ],
                               ],
-                              if (pastRides.isNotEmpty) ...[
-                                const _SectionHeader(title: 'Historial'),
-                                ...pastRides.map((r) => _RideCard(ride: r)),
-                              ],
-                            ],
-                          ),
-                    state.bookings.isEmpty
-                        ? const _EmptyState(
-                            message: 'Sin pasajeros registrados',
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            itemCount: state.bookings.length,
-                            itemBuilder: (ctx, i) => _PassengerBookingCard(
-                              booking: state.bookings[i],
-                              onAccept: _acceptBooking,
-                              onReject: _rejectBooking,
-                              onMarkArriving: _markArriving,
-                              onMarkArrived: _markArrived,
-                              onStartTrip: _startTrip,
-                              onCompleteTrip: _completeTrip,
-                              onFavoritePassenger: _toggleFavoritePassenger,
-                              onReviewPassenger: _reviewPassenger,
                             ),
-                          ),
-                  ],
+                      state.bookings.isEmpty
+                          ? const _EmptyState(
+                              message: 'Sin pasajeros registrados',
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              itemCount: state.bookings.length,
+                              itemBuilder: (ctx, i) => _PassengerBookingCard(
+                                booking: state.bookings[i],
+                                onAccept: _acceptBooking,
+                                onReject: _rejectBooking,
+                                onMarkArriving: _markArriving,
+                                onMarkArrived: _markArrived,
+                                onStartTrip: _startTrip,
+                                onCompleteTrip: _completeTrip,
+                                onFavoritePassenger: _toggleFavoritePassenger,
+                                onReviewPassenger: _reviewPassenger,
+                              ),
+                            ),
+                    ],
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }

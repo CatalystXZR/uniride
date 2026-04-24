@@ -583,7 +583,7 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Comision: \$$feePreview · Neto conductor: \$$netPreview',
+                              'Comision pasajero: \$$feePreview · Conductor recibe: \$$netPreview',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: AppTheme.subtle,
@@ -591,7 +591,7 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                             ),
                             const SizedBox(height: 2),
                             const Text(
-                              'Comision fija por asiento: \$190',
+                              'La comision se cobra al pasajero; el conductor no tiene cobro adicional.',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: AppTheme.subtle,

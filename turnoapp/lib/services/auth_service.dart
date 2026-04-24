@@ -14,6 +14,7 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase_client.dart';
+import 'booking_notification_service.dart';
 
 class AuthService {
   final _client = SupabaseConfig.client;
@@ -73,6 +74,7 @@ class AuthService {
   }
 
   Future<void> signOut() async {
+    BookingNotificationService.instance.clearSnapshots();
     await _client.auth.signOut();
   }
 
