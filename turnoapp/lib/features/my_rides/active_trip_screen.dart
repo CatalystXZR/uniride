@@ -27,6 +27,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
   final _favoritesService = FavoritesService();
   bool _busy = false;
   String? _busyMessage;
+  bool _isFavoriteDriver = false;
 
   Future<void> _runBusy(
     String message,
@@ -63,6 +64,17 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
   Future<void> _refresh() async {
     try {
       await ref.read(myRidesProvider.notifier).load();
+      final booking = _bookingFromState();
+      if (booking?.driverId != null) {
+        try {
+          final isFav = await _favoritesService.isFavorite(booking!.driverId!);
+          if (!mounted) return;
+          setState(() => _isFavoriteDriver = isFav);
+        } catch (_) {
+          if (!mounted) return;
+          setState(() => _isFavoriteDriver = false);
+        }
+      }
     } catch (e) {
       if (!mounted) return;
       AppSnackbar.show(
@@ -125,6 +137,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
       try {
         final isFav = await _favoritesService.toggleFavorite(driverId);
         if (!mounted) return;
+        setState(() => _isFavoriteDriver = isFav);
         AppSnackbar.show(
           context,
           isFav
@@ -429,10 +442,23 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
               if (canConfirmBoarding) const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
+                child: ElevatedButton.icon(
                   onPressed: () => _toggleFavoriteDriver(booking),
-                  icon: const Icon(Icons.favorite_outline),
-                  label: const Text('Agregar conductor a favoritos'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isFavoriteDriver
+                        ? const Color(0xFFFF5A7A)
+                        : Colors.white,
+                    foregroundColor:
+                        _isFavoriteDriver ? Colors.white : AppTheme.primary,
+                  ),
+                  icon: Icon(
+                    _isFavoriteDriver ? Icons.favorite : Icons.favorite_outline,
+                  ),
+                  label: Text(
+                    _isFavoriteDriver
+                        ? 'Conductor favorito'
+                        : 'Agregar conductor a favoritos',
+                  ),
                 ),
               ),
               if (booking.isCompleted) ...[

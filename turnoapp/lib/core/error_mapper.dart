@@ -103,6 +103,13 @@ class AppErrorMapper {
       return 'La ventana para esta accion ya expiro.';
     }
 
+    if (text.contains('p0015') ||
+        text.contains('driver_banned_now') ||
+        text.contains('is_driver_banned_now') ||
+        text.contains('vehicle_suspended')) {
+      return 'Tu cuenta o vehiculo esta suspendido temporalmente por strikes.';
+    }
+
     if (text.contains('p0014') ||
         text.contains('review_only_completed_trip') ||
         text.contains('review_already_submitted') ||

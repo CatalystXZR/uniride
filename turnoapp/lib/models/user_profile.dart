@@ -28,6 +28,7 @@ class UserProfile {
   final bool isDriverVerified;
   final int strikesCount;
   final DateTime? suspendedUntil;
+  final DateTime? vehicleSuspendedUntil;
   final String? emergencyContact;
   final String? safetyNotes;
   final String? profilePhotoUrl;
@@ -56,6 +57,7 @@ class UserProfile {
     required this.isDriverVerified,
     required this.strikesCount,
     this.suspendedUntil,
+    this.vehicleSuspendedUntil,
     this.emergencyContact,
     this.safetyNotes,
     this.profilePhotoUrl,
@@ -93,6 +95,9 @@ class UserProfile {
       suspendedUntil: json['suspended_until'] != null
           ? DateTime.parse(json['suspended_until'] as String)
           : null,
+      vehicleSuspendedUntil: json['vehicle_suspended_until'] != null
+          ? DateTime.parse(json['vehicle_suspended_until'] as String)
+          : null,
       emergencyContact: json['emergency_contact'] as String?,
       safetyNotes: json['safety_notes'] as String?,
       profilePhotoUrl: json['profile_photo_url'] as String?,
@@ -123,6 +128,7 @@ class UserProfile {
         'is_driver_verified': isDriverVerified,
         'strikes_count': strikesCount,
         'suspended_until': suspendedUntil?.toIso8601String(),
+        'vehicle_suspended_until': vehicleSuspendedUntil?.toIso8601String(),
         'emergency_contact': emergencyContact,
         'safety_notes': safetyNotes,
         'profile_photo_url': profilePhotoUrl,
@@ -151,6 +157,7 @@ class UserProfile {
     bool? isDriverVerified,
     int? strikesCount,
     DateTime? suspendedUntil,
+    DateTime? vehicleSuspendedUntil,
     String? emergencyContact,
     String? safetyNotes,
     String? profilePhotoUrl,
@@ -178,6 +185,8 @@ class UserProfile {
       isDriverVerified: isDriverVerified ?? this.isDriverVerified,
       strikesCount: strikesCount ?? this.strikesCount,
       suspendedUntil: suspendedUntil ?? this.suspendedUntil,
+      vehicleSuspendedUntil:
+          vehicleSuspendedUntil ?? this.vehicleSuspendedUntil,
       emergencyContact: emergencyContact ?? this.emergencyContact,
       safetyNotes: safetyNotes ?? this.safetyNotes,
       profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,

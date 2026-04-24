@@ -43,6 +43,7 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
   late TabController _tabController;
   bool _busy = false;
   String? _busyMessage;
+  Set<String> _favoritePassengerIds = <String>{};
 
   Future<void> _runBusy(
     String message,
@@ -83,6 +84,19 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
   Future<void> _load() async {
     try {
       await ref.read(driverRidesProvider.notifier).load();
+      try {
+        final favorites = await _favoritesService.getMyFavorites();
+        if (!mounted) return;
+        setState(() {
+          _favoritePassengerIds = favorites
+              .where((item) => item.roleMode == RoleMode.passenger)
+              .map((item) => item.userId)
+              .toSet();
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() => _favoritePassengerIds = <String>{});
+      }
     } catch (e) {
       if (!mounted) return;
       AppSnackbar.show(
@@ -474,6 +488,8 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
                                 onStartTrip: _startTrip,
                                 onCompleteTrip: _completeTrip,
                                 onFavoritePassenger: _toggleFavoritePassenger,
+                                isFavoritePassenger: _favoritePassengerIds
+                                    .contains(state.bookings[i].passengerId),
                                 onReviewPassenger: _reviewPassenger,
                               ),
                             ),
@@ -598,6 +614,7 @@ class _PassengerBookingCard extends StatelessWidget {
   final void Function(Booking)? onStartTrip;
   final void Function(Booking)? onCompleteTrip;
   final void Function(Booking)? onFavoritePassenger;
+  final bool isFavoritePassenger;
   final void Function(Booking)? onReviewPassenger;
 
   const _PassengerBookingCard({
@@ -609,6 +626,7 @@ class _PassengerBookingCard extends StatelessWidget {
     this.onStartTrip,
     this.onCompleteTrip,
     this.onFavoritePassenger,
+    required this.isFavoritePassenger,
     this.onReviewPassenger,
   });
 
@@ -801,10 +819,22 @@ class _PassengerBookingCard extends StatelessWidget {
       actions.add(
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton.icon(
+          child: ElevatedButton.icon(
             onPressed: () => onFavoritePassenger!(booking),
-            icon: const Icon(Icons.favorite_outline),
-            label: const Text('Agregar pasajero a favoritos'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  isFavoritePassenger ? const Color(0xFFFF5A7A) : Colors.white,
+              foregroundColor:
+                  isFavoritePassenger ? Colors.white : AppTheme.primary,
+            ),
+            icon: Icon(
+              isFavoritePassenger ? Icons.favorite : Icons.favorite_outline,
+            ),
+            label: Text(
+              isFavoritePassenger
+                  ? 'Pasajero favorito'
+                  : 'Agregar pasajero a favoritos',
+            ),
           ),
         ),
       );

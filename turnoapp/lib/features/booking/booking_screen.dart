@@ -55,6 +55,7 @@ class _BookingScreenState extends State<BookingScreen> {
   UserProfile? _driverProfile;
   List<UserReview> _driverReviews = const [];
   bool _isFavoriteDriver = false;
+  bool _favoriteLoading = false;
   bool _loading = true;
   bool _booking = false;
 
@@ -107,11 +108,16 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Future<void> _toggleDriverFavorite() async {
     final ride = _ride;
-    if (ride == null) return;
+    if (ride == null || _favoriteLoading) return;
+
+    setState(() => _favoriteLoading = true);
     try {
       final next = await _favoritesService.toggleFavorite(ride.driverId);
       if (!mounted) return;
-      setState(() => _isFavoriteDriver = next);
+      setState(() {
+        _isFavoriteDriver = next;
+        _favoriteLoading = false;
+      });
       AppSnackbar.show(
         context,
         next
@@ -120,6 +126,7 @@ class _BookingScreenState extends State<BookingScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+      setState(() => _favoriteLoading = false);
       AppSnackbar.show(
         context,
         AppErrorMapper.toMessage(
@@ -257,6 +264,7 @@ class _BookingScreenState extends State<BookingScreen> {
                             profile: _driverProfile!,
                             reviews: _driverReviews,
                             isFavorite: _isFavoriteDriver,
+                            isFavoriteLoading: _favoriteLoading,
                             onToggleFavorite: _toggleDriverFavorite,
                           ),
                         const SizedBox(height: 12),
@@ -458,12 +466,14 @@ class _DriverProfileSection extends StatelessWidget {
   final UserProfile profile;
   final List<UserReview> reviews;
   final bool isFavorite;
+  final bool isFavoriteLoading;
   final VoidCallback onToggleFavorite;
 
   const _DriverProfileSection({
     required this.profile,
     required this.reviews,
     required this.isFavorite,
+    required this.isFavoriteLoading,
     required this.onToggleFavorite,
   });
 
@@ -517,7 +527,7 @@ class _DriverProfileSection extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  onPressed: onToggleFavorite,
+                  onPressed: isFavoriteLoading ? null : onToggleFavorite,
                   tooltip: isFavorite
                       ? 'Quitar de favoritos'
                       : 'Agregar a favoritos',

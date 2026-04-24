@@ -44,6 +44,7 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
   late TabController _tabController;
   bool _busy = false;
   String? _busyMessage;
+  Set<String> _favoriteDriverIds = <String>{};
 
   Future<void> _runBusy(
     String message,
@@ -84,6 +85,19 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
   Future<void> _load() async {
     try {
       await ref.read(myRidesProvider.notifier).load();
+      try {
+        final favorites = await _favoritesService.getMyFavorites();
+        if (!mounted) return;
+        setState(() {
+          _favoriteDriverIds = favorites
+              .where((item) => item.roleMode == RoleMode.driver)
+              .map((item) => item.userId)
+              .toSet();
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() => _favoriteDriverIds = <String>{});
+      }
     } catch (e) {
       if (!mounted) return;
       AppSnackbar.show(
@@ -402,6 +416,8 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
                                 onReportNoShow: _reportNoShow,
                                 onOpenActiveTrip: _openActiveTrip,
                                 onFavoriteDriver: _toggleFavoriteDriver,
+                                isFavoriteDriver: _favoriteDriverIds
+                                    .contains(active[i].driverId),
                                 onReviewDriver: _reviewDriver,
                               ),
                             ),
@@ -415,6 +431,8 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
                                 onConfirmBoarding: null,
                                 onOpenActiveTrip: null,
                                 onFavoriteDriver: _toggleFavoriteDriver,
+                                isFavoriteDriver: _favoriteDriverIds
+                                    .contains(history[i].driverId),
                                 onReviewDriver: _reviewDriver,
                               ),
                             ),
@@ -434,6 +452,7 @@ class _BookingCard extends StatelessWidget {
   final void Function(Booking)? onReportNoShow;
   final void Function(Booking)? onOpenActiveTrip;
   final void Function(Booking)? onFavoriteDriver;
+  final bool isFavoriteDriver;
   final void Function(Booking)? onReviewDriver;
 
   const _BookingCard({
@@ -443,6 +462,7 @@ class _BookingCard extends StatelessWidget {
     this.onReportNoShow,
     this.onOpenActiveTrip,
     this.onFavoriteDriver,
+    required this.isFavoriteDriver,
     this.onReviewDriver,
   });
 
@@ -612,10 +632,23 @@ class _BookingCard extends StatelessWidget {
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
+                child: ElevatedButton.icon(
                   onPressed: () => onFavoriteDriver!(booking),
-                  icon: const Icon(Icons.favorite_outline),
-                  label: const Text('Agregar conductor a favoritos'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isFavoriteDriver
+                        ? const Color(0xFFFF5A7A)
+                        : Colors.white,
+                    foregroundColor:
+                        isFavoriteDriver ? Colors.white : AppTheme.primary,
+                  ),
+                  icon: Icon(
+                    isFavoriteDriver ? Icons.favorite : Icons.favorite_outline,
+                  ),
+                  label: Text(
+                    isFavoriteDriver
+                        ? 'Conductor favorito'
+                        : 'Agregar conductor a favoritos',
+                  ),
                 ),
               ),
             ],

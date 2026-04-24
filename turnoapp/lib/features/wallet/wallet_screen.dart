@@ -338,13 +338,11 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
-                                    child: OutlinedButton.icon(
+                                    child: ElevatedButton.icon(
                                       onPressed: _requestWithdrawal,
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: Colors.white,
-                                        side: const BorderSide(
-                                          color: Color(0xFFD5E7F3),
-                                        ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor: AppTheme.primary,
                                       ),
                                       icon: const Icon(Icons.arrow_downward),
                                       label: const Text('Retirar'),
@@ -362,7 +360,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
                           ),
                           const SizedBox(height: 8),
                           ...state.transactions

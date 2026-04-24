@@ -122,9 +122,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         }
       }
 
-      if (profile.suspendedUntil?.isAfter(DateTime.now()) ?? false) {
-        final until =
-            DateFormat('d MMM y', 'es').format(profile.suspendedUntil!);
+      final driverSuspendedActive =
+          profile.suspendedUntil?.isAfter(DateTime.now()) ?? false;
+      final vehicleSuspendedActive =
+          profile.vehicleSuspendedUntil?.isAfter(DateTime.now()) ?? false;
+
+      if (driverSuspendedActive || vehicleSuspendedActive) {
+        final until = DateFormat('d MMM y', 'es').format(
+          driverSuspendedActive
+              ? profile.suspendedUntil!
+              : profile.vehicleSuspendedUntil!,
+        );
         if (mounted) {
           AppSnackbar.show(
             context,
@@ -454,7 +462,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           onTopup: () => context.push('/wallet'),
                         ),
                         if ((profile?.strikesCount ?? 0) > 0 ||
-                            (profile?.suspendedUntil != null)) ...[
+                            (profile?.suspendedUntil != null) ||
+                            (profile?.vehicleSuspendedUntil != null)) ...[
                           const SizedBox(height: 12),
                           Card(
                             child: Padding(
@@ -469,7 +478,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                      'Strikes: ${profile?.strikesCount ?? 0}/2'),
+                                    'Strikes activas: ${profile?.strikesCount ?? 0}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  if (profile?.vehicleSuspendedUntil != null)
+                                    Text(
+                                      'Baneo vehiculo hasta: ${DateFormat('d MMM y', 'es').format(profile!.vehicleSuspendedUntil!)}',
+                                      style: const TextStyle(
+                                        color: AppTheme.danger,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   if (profile?.suspendedUntil != null)
                                     Text(
                                       'Suspendido hasta: ${DateFormat('d MMM y', 'es').format(profile!.suspendedUntil!)}',
