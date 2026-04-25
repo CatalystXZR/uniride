@@ -8,6 +8,14 @@ class AppErrorMapper {
     final raw = error.toString();
     final text = raw.toLowerCase();
 
+    if (text.contains('unauthorized') ||
+        text.contains('p0001') ||
+        text.contains('jwt') ||
+        text.contains('token') ||
+        text.contains('session')) {
+      return 'Sesion expirada. Cierra sesion y vuelve a iniciar.';
+    }
+
     if (text.contains('socketexception') ||
         text.contains('failed host lookup') ||
         text.contains('network is unreachable') ||
