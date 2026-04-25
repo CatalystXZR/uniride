@@ -133,6 +133,12 @@ class BookingService {
     });
   }
 
+  Future<void> driverCompleteRide(String rideId) async {
+    await _client.rpc('complete_ride_manual', params: {
+      'p_ride_id': rideId,
+    });
+  }
+
   Future<void> cancelBooking(String bookingId) async {
     await _client.rpc('cancel_booking', params: {
       'p_booking_id': bookingId,

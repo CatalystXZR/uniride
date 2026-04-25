@@ -56,6 +56,7 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
         _busyMessage = message;
       });
     }
+
     try {
       await action();
     } finally {
@@ -66,6 +67,44 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
         });
       }
     }
+  }
+
+  Future<void> _completeRideAction(Ride ride) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Finalizar viaje'),
+        content: const Text(
+            'El viaje terminara y se pagara al conductor. Continuar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Finalizar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await _runBusy('Finalizando...', () async {
+      try {
+        await ref.read(driverRidesProvider.notifier).completeRide(ride.id);
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Viaje completado.');
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(e, fallback: 'Error al finalizar.'),
+          isError: true,
+        );
+      }
+    });
   }
 
   @override
@@ -463,6 +502,7 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
                                     (r) => _RideCard(
                                       ride: r,
                                       onCancel: () => _cancelRide(r),
+                                      onComplete: () => _completeRideAction(r),
                                     ),
                                   ),
                                 ],
@@ -505,8 +545,9 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
 class _RideCard extends StatelessWidget {
   final Ride ride;
   final VoidCallback? onCancel;
+  final VoidCallback? onComplete;
 
-  const _RideCard({required this.ride, this.onCancel});
+  const _RideCard({required this.ride, this.onCancel, this.onComplete});
 
   @override
   Widget build(BuildContext context) {
@@ -595,6 +636,21 @@ class _RideCard extends StatelessWidget {
                     side: const BorderSide(color: AppTheme.danger),
                   ),
                   label: const Text('Cancelar turno'),
+                ),
+              ),
+            ],
+            if (ride.isActive && onComplete != null) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: onComplete,
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('Finalizar viaje'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF178E68),
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ),
             ],

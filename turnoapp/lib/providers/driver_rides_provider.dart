@@ -94,6 +94,12 @@ class DriverRidesNotifier extends StateNotifier<DriverRidesState> {
     await bookingService.driverCompleteTrip(bookingId);
     await load();
   }
+
+  Future<void> completeRide(String rideId) async {
+    final bookingService = _ref.read(bookingServiceProvider);
+    await bookingService.driverCompleteRide(rideId);
+    await load();
+  }
 }
 
 final driverRidesProvider =
