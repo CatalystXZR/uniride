@@ -188,13 +188,14 @@ class _BookingScreenState extends State<BookingScreen> {
         context.go('/my-rides');
       }
     } catch (e) {
+      final errorMsg = e.toString();
+      debugPrint('Booking error: $errorMsg');
       if (mounted) {
         AppSnackbar.show(
           context,
-          AppErrorMapper.toMessage(
-            e,
-            fallback: 'No pudimos completar tu reserva. Intenta nuevamente.',
-          ),
+          AppErrorMapper.toMessage(e,
+              fallback:
+                  'Error: ${errorMsg.substring(0, errorMsg.length.clamp(0, 100))}'),
           isError: true,
         );
       }
