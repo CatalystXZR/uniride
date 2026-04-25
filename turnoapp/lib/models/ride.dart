@@ -82,9 +82,10 @@ class Ride {
       direction: json['direction'] == 'to_campus'
           ? RideDirection.toCampus
           : RideDirection.fromCampus,
-      departureAt: DateTime.parse(json['departure_at'] as String),
+      departureAt:
+          _parseChileTime(json['departure_at'] as String?) ?? DateTime.now(),
       seatPrice: (json['seat_price'] as int?) ?? 2000,
-      platformFee: (json['platform_fee'] as int?) ?? 0,
+      platformFee: (json['platform_fee'] as int?) ?? 190,
       driverNetAmount: (json['driver_net_amount'] as int?) ??
           ((json['seat_price'] as int?) ?? 2000),
       seatsTotal: json['seats_total'] as int,
@@ -125,4 +126,11 @@ class Ride {
 
   String get directionLabel =>
       direction == RideDirection.toCampus ? 'Hacia campus' : 'Desde campus';
+}
+
+DateTime? _parseChileTime(String? value) {
+  if (value == null) return null;
+  final dt = DateTime.parse(value);
+  if (dt.timeZoneName.isEmpty) return dt;
+  return dt.toLocal();
 }
