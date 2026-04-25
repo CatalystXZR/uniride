@@ -1,9 +1,9 @@
 {
   "rewrites": [
-    { "source": "/privacy", "destination": "/privacy.html" },
-    { "source": "/privacy/", "destination": "/privacy.html" },
-    { "source": "/support", "destination": "/support.html" },
-    { "source": "/support/", "destination": "/support.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/privacy", "destination": "/web/privacy.html" },
+    { "source": "/privacy/", "destination": "/web/privacy.html" },
+    { "source": "/support", "destination": "/web/support.html" },
+    { "source": "/support/", "destination": "/web/support.html" },
+    { "source": "/(.*)", "destination": "/web/index.html" }
   ]
 }
