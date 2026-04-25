@@ -4,6 +4,6 @@
     { "source": "/privacy/", "destination": "/web/privacy.html" },
     { "source": "/support", "destination": "/web/support.html" },
     { "source": "/support/", "destination": "/web/support.html" },
-    { "source": "/(.*)", "destination": "/web/index.html" }
+    { "source": "/:path*", "destination": "/web/:path" }
   ]
 }
