@@ -1,11 +1,6 @@
 {
+  "outputDirectory": "web",
   "rewrites": [
-    { "source": "/privacy", "destination": "/web/privacy.html" },
-    { "source": "/privacy/", "destination": "/web/privacy.html" },
-    { "source": "/support", "destination": "/web/support.html" },
-    { "source": "/support/", "destination": "/web/support.html" }
-  ],
-  "static": {
-    "folder": "web"
-  }
+    { "source": "/((?!.*\\.(js|html|json|wasm)$).*)", "destination": "/index.html" }
+  ]
 }
