@@ -68,6 +68,30 @@ class WalletNotifier extends StateNotifier<WalletState> {
     await withdrawalService.requestWithdrawal(amount);
     await load();
   }
+
+  /// Sandbox topup - adds balance directly without external payment.
+  Future<void> sandboxTopup(int amount) async {
+    state = state.copyWith(topupLoading: true);
+    try {
+      final walletService = _ref.read(walletServiceProvider);
+      await walletService.sandboxTopup(amount);
+      await load();
+    } finally {
+      state = state.copyWith(topupLoading: false);
+    }
+  }
+
+  /// Sandbox withdrawal - requests payout directly without external provider.
+  Future<void> sandboxWithdraw(int amount) async {
+    state = state.copyWith(topupLoading: true);
+    try {
+      final walletService = _ref.read(walletServiceProvider);
+      await walletService.sandboxWithdraw(amount);
+      await load();
+    } finally {
+      state = state.copyWith(topupLoading: false);
+    }
+  }
 }
 
 final walletProvider = StateNotifierProvider<WalletNotifier, WalletState>((

@@ -82,7 +82,7 @@ class AppErrorMapper {
     }
 
     if (text.contains('p0010') || text.contains('ride_departed')) {
-      return 'Este turno ya comenzo o ya salio.';
+      return 'Este viaje ya inicio.';
     }
 
     if (text.contains('p0011') ||
@@ -158,7 +158,7 @@ class AppErrorMapper {
     }
 
     if (text.contains('overlapping_booking') || text.contains('p0016')) {
-      return 'Ya tienes una reserva en un horario cercano. Cancela la anterior antes de tomar otra.';
+      return 'Ya tienes un viaje a esta hora.';
     }
 
     if (text.contains('provider_not_connected') ||

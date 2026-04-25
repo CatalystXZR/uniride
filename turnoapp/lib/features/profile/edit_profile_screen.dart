@@ -7,6 +7,7 @@ import '../../app/theme.dart';
 import '../../core/error_mapper.dart';
 import '../../services/auth_service.dart';
 import '../../services/profile_service.dart';
+import '../../services/wallet_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/loading_overlay.dart';
 
@@ -21,6 +22,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _profileService = ProfileService();
   final _authService = AuthService();
+  final _walletService = WalletService();
   final _picker = ImagePicker();
 
   final _fullNameController = TextEditingController();
@@ -563,11 +565,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     setState(() => _deleting = true);
     try {
-      await _authService.deleteMyAccount(
-        reason: reasonController.text.trim().isEmpty
-            ? null
-            : reasonController.text.trim(),
-      );
+      await _walletService.deleteUserAccount();
       if (!mounted) return;
       AppSnackbar.show(
         context,

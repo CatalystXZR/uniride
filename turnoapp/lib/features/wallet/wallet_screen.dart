@@ -15,7 +15,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/theme.dart';
 import '../../core/constants.dart';
@@ -92,7 +91,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
             ),
             const SizedBox(height: 4),
             const Text(
-              'Pagas monto + 1% de fee. Tu billetera recibe el monto exacto.',
+              'Modo sandbox: se agregara saldo directamente a tu billetera.',
               style: TextStyle(color: AppTheme.subtle, fontSize: 13),
             ),
             const SizedBox(height: 16),
@@ -124,23 +123,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
     if (selected == null || !mounted) return;
 
     try {
-      final initPoint =
-          await ref.read(walletProvider.notifier).createTopupIntent(selected);
-      final uri = Uri.parse(initPoint);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (mounted) {
-          AppSnackbar.show(context, 'No se pudo abrir el pago', isError: true);
-        }
-      }
+      await ref.read(walletProvider.notifier).sandboxTopup(selected);
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Recarga realizada con exito');
     } catch (e) {
       if (!mounted) return;
       AppSnackbar.show(
         context,
         AppErrorMapper.toMessage(
           e,
-          fallback: 'No pudimos iniciar la recarga. Intenta nuevamente.',
+          fallback: 'No pudimos realizar la recarga. Intenta nuevamente.',
         ),
         isError: true,
       );
@@ -196,7 +188,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
               ),
               const SizedBox(height: 8),
               const Text(
-                'Los retiros se procesan quincenalmente.',
+                'Modo sandbox: el monto se agregara a tu saldo inmediatamente.',
                 style: TextStyle(fontSize: 12, color: AppTheme.subtle),
               ),
             ],
@@ -228,16 +220,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
     amountController.dispose();
 
     try {
-      await ref.read(walletProvider.notifier).requestWithdrawal(amount);
+      await ref.read(walletProvider.notifier).sandboxWithdraw(amount);
       if (!mounted) return;
-      AppSnackbar.show(context, 'Solicitud de retiro enviada');
+      AppSnackbar.show(context, 'Retiro realizado con exito');
     } catch (e) {
       if (!mounted) return;
       AppSnackbar.show(
         context,
         AppErrorMapper.toMessage(
           e,
-          fallback: 'No pudimos enviar la solicitud de retiro.',
+          fallback: 'No pudimos procesar el retiro.',
         ),
         isError: true,
       );
@@ -261,7 +253,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
 
     return LoadingOverlay(
       isLoading: state.topupLoading,
-      message: 'Abriendo Mercado Pago...',
+      message: 'Procesando...',
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Billetera'),

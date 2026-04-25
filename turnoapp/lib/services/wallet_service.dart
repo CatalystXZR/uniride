@@ -95,4 +95,30 @@ class WalletService {
 
     return initPoint;
   }
+
+  /// Sandbox topup - adds balance directly without external payment provider.
+  Future<void> sandboxTopup(int amountCLP) async {
+    if (amountCLP <= 0) {
+      throw Exception('Monto inválido');
+    }
+    await _client.rpc('sandbox_topup', params: {
+      'p_amount': amountCLP,
+    });
+  }
+
+  /// Sandbox withdrawal - requests payout directly without external provider.
+  Future<void> sandboxWithdraw(int amountCLP) async {
+    if (amountCLP <= 0) {
+      throw Exception('Monto inválido');
+    }
+    await _client.rpc('sandbox_withdraw', params: {
+      'p_amount': amountCLP,
+    });
+  }
+
+  /// Delete user account - complies with Apple App Store policy.
+  Future<void> deleteUserAccount() async {
+    await _client.rpc('delete_user_account');
+    await _client.auth.signOut();
+  }
 }
