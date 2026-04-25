@@ -3,7 +3,9 @@
     { "source": "/privacy", "destination": "/web/privacy.html" },
     { "source": "/privacy/", "destination": "/web/privacy.html" },
     { "source": "/support", "destination": "/web/support.html" },
-    { "source": "/support/", "destination": "/web/support.html" },
-    { "source": "/:path*", "destination": "/web/:path" }
-  ]
+    { "source": "/support/", "destination": "/web/support.html" }
+  ],
+  "static": {
+    "folder": "web"
+  }
 }
