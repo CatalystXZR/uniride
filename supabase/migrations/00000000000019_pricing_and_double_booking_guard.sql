@@ -17,7 +17,20 @@
 -- =============================================================
 
 -- ----------
--- 1) Trigger: compute price server-side on ride insert/update
+-- 1) Drop existing constraint if any (idempotent).
+-- ----------
+
+do $$
+begin
+  if exists (
+    select 1 from pg_constraint where conname = 'rides_price_fixed_ck'
+  ) then
+    alter table rides drop constraint rides_price_fixed_ck;
+  end if;
+end $$;
+
+-- ----------
+-- 2) Trigger: compute price server-side on ride insert/update
 -- ----------
 
 create or replace function public.trg_compute_ride_pricing()
@@ -39,47 +52,41 @@ before insert or update of seat_price on rides
 for each row execute function public.trg_compute_ride_pricing();
 
 -- ----------
--- 2) Lock existing prices: seat_price=2000, platform_fee=190, driver_net_amount=2000
+-- 3) Lock ALL rides to fixed pricing (no status filter — inactive rows must also comply).
 -- ----------
 
 update rides
 set seat_price = 2000,
     platform_fee = 190,
-    driver_net_amount = 2000
-where status = 'active';
+    driver_net_amount = 2000;
 
 -- ----------
--- 3) Constraint: prevent price tampering
+-- 4) Add constraint now that all rows are compliant
 -- ----------
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint where conname = 'rides_price_fixed_ck'
-  ) then
-    alter table rides
-      add constraint rides_price_fixed_ck
-      check (seat_price = 2000 and platform_fee = 190 and driver_net_amount = 2000);
-  end if;
-end $$;
+alter table rides
+  add constraint rides_price_fixed_ck
+  check (seat_price = 2000 and platform_fee = 190 and driver_net_amount = 2000);
 
 -- ----------
--- 3b) Radial only for Chicureo
+-- 3b) Radial only for Chicureo (idempotent: drop first if exists)
 -- ----------
 
 do $$
 begin
-  if not exists (
+  if exists (
     select 1 from pg_constraint where conname = 'rides_radial_chicureo_ck'
   ) then
-    alter table rides
-      add constraint rides_radial_chicureo_ck
-      check (
-        is_radial = false
-        or (is_radial = true and origin_commune = 'Chicureo')
-      );
+    alter table rides drop constraint rides_radial_chicureo_ck;
   end if;
 end $$;
+
+alter table rides
+  add constraint rides_radial_chicureo_ck
+  check (
+    is_radial = false
+    or (is_radial = true and origin_commune = 'Chicureo')
+  );
 
 -- ----------
 -- 4) Phase 5: No double booking (same passenger, overlapping time)
