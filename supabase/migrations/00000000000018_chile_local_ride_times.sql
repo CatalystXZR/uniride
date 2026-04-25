@@ -16,11 +16,6 @@
 -- TurnoApp — Migration 18: Chile local ride times
 -- =============================================================
 
--- Convert published ride times to local wall-clock timestamps.
-alter table rides
-  alter column departure_at type timestamp without time zone
-  using departure_at at time zone 'UTC';
-
 -- Keep server-side validation in local Chile time.
 create or replace function public.current_chile_time()
 returns timestamp
@@ -29,6 +24,25 @@ stable
 as $$
   select timezone('America/Santiago', now());
 $$;
+
+-- Drop trigger first (needed before alter type, and idempotent).
+drop trigger if exists trg_validate_ride_departure on rides;
+
+-- Convert published ride times to local wall-clock timestamps (idempotent).
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'rides'
+      and column_name = 'departure_at'
+      and data_type = 'timestamp with time zone'
+  ) then
+    alter table public.rides
+      alter column departure_at type timestamp without time zone
+      using departure_at at time zone 'UTC';
+  end if;
+end $$;
 
 create or replace function public.trg_validate_ride_departure()
 returns trigger
@@ -44,7 +58,6 @@ begin
   return new;
 end $$;
 
-drop trigger if exists trg_validate_ride_departure on rides;
 create trigger trg_validate_ride_departure
 before insert or update of departure_at on rides
 for each row execute function public.trg_validate_ride_departure();
