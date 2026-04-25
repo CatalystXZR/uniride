@@ -188,6 +188,8 @@ class _BookingScreenState extends State<BookingScreen> {
     if (confirmed != true || !mounted) return;
 
     setState(() => _booking = true);
+    print('=== RESERVA INICIANDO ===');
+    print('RideID: ${widget.rideId}');
     try {
       await _bookingService.createBooking(widget.rideId);
       if (mounted) {
