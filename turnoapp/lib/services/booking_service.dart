@@ -12,23 +12,84 @@
  *
  */
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../core/supabase_client.dart';
 import '../models/booking.dart';
 
 class BookingService {
   final _client = SupabaseConfig.client;
 
-  /// Calls the `create_booking` Postgres RPC.
-  /// Atomically deducts saldo, holds funds, decrements seats.
-  Future<String> createBooking(String rideId) async {
-    final result = await _client.rpc('create_booking', params: {
-      'p_ride_id': rideId,
-    });
-    return result as String;
+  String _mapPostgresError(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+
+    if (errorStr.contains('p0004') || errorStr.contains('insufficient')) {
+      return 'Saldo insuficiente en billetera';
+    }
+    if (errorStr.contains('p0016') || errorStr.contains('overlapping')) {
+      return 'Choque de horarios con otro viaje';
+    }
+    if (errorStr.contains('p0010') ||
+        errorStr.contains('ride_departed') ||
+        errorStr.contains('partio')) {
+      return 'El viaje ya partio';
+    }
+    if (errorStr.contains('p0001') || errorStr.contains('unauthorized')) {
+      return 'Sesion expirada. Vuelve a iniciar sesion';
+    }
+    if (errorStr.contains('p0002') || errorStr.contains('unavailable')) {
+      return 'Este turno ya no esta disponible';
+    }
+    if (errorStr.contains('p0003') || errorStr.contains('already booked')) {
+      return 'Ya tienes una reserva en este turno';
+    }
+    if (errorStr.contains('p0011') || errorStr.contains('forbidden')) {
+      return 'No puedes realizar esta accion';
+    }
+
+    if (error is PostgrestException) {
+      final details = error.details as String?;
+      final hint = error.hint as String?;
+      if (details != null && details.isNotEmpty) return details;
+      if (hint != null && hint.isNotEmpty) return hint;
+    }
+
+    return error.toString();
   }
 
-  /// Calls the `confirm_boarding` Postgres RPC.
-  /// Releases held funds to the driver.
+  Future<String> createBooking(String rideId) async {
+    print('DEBUG createBooking called with rideId: $rideId');
+
+    try {
+      final uuidValid = _isValidUuid(rideId);
+      if (!uuidValid) {
+        print('DEBUG Invalid UUID format: $rideId');
+        throw Exception('ID de ride invalido');
+      }
+
+      final result = await _client.rpc('create_booking', params: {
+        'p_ride_id': rideId,
+      });
+
+      print('DEBUG createBooking result: $result');
+      return result as String;
+    } on PostgrestException catch (e) {
+      print(
+          'DEBUG PostgrestException: ${e.message}, code: ${e.code}, details: ${e.details}');
+      throw Exception(_mapPostgresError(e));
+    } catch (e) {
+      print('DEBUG Generic error: $e');
+      throw Exception(_mapPostgresError(e));
+    }
+  }
+
+  bool _isValidUuid(String value) {
+    final uuidRegex = RegExp(
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+        caseSensitive: false);
+    return uuidRegex.hasMatch(value.trim());
+  }
+
   Future<void> confirmBoarding(String bookingId) async {
     await _client.rpc('confirm_boarding', params: {
       'p_booking_id': bookingId,
@@ -72,25 +133,19 @@ class BookingService {
     });
   }
 
-  /// Calls the `cancel_booking` Postgres RPC.
-  /// Refunds held funds to the passenger and increments available seats.
   Future<void> cancelBooking(String bookingId) async {
     await _client.rpc('cancel_booking', params: {
       'p_booking_id': bookingId,
     });
   }
 
-  Future<void> reportDriverNoShow(
-    String bookingId, {
-    String? notes,
-  }) async {
+  Future<void> reportDriverNoShow(String bookingId, {String? notes}) async {
     await _client.rpc('passenger_report_no_show', params: {
       'p_booking_id': bookingId,
       'p_notes': notes,
     });
   }
 
-  /// Returns all bookings for the current passenger.
   Future<List<Booking>> getMyBookings({int limit = 80}) async {
     final uid = _client.auth.currentUser!.id;
     final rows = await _client
@@ -153,12 +208,9 @@ class BookingService {
     }).toList();
   }
 
-  /// Returns bookings on rides driven by the current user.
-  /// Fetches the driver's ride IDs first, then queries bookings for those rides.
   Future<List<Booking>> getBookingsForMyRides({int limit = 100}) async {
     final uid = _client.auth.currentUser!.id;
 
-    // Step 1: get all ride IDs owned by this driver
     final rideRows =
         await _client.from('rides').select('id').eq('driver_id', uid);
 
@@ -166,7 +218,6 @@ class BookingService {
 
     final rideIds = rideRows.map((r) => r['id'] as String).toList();
 
-    // Step 2: fetch bookings for those rides
     final rows = await _client
         .from('bookings')
         .select('''
