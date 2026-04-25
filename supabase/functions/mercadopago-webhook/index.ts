@@ -171,127 +171,36 @@ async function verifyMPSignature(req: Request, dataId: string): Promise<boolean>
   return true;
 }
 
+// ... (tus funciones de logs y helpers se quedan igual arriba)
+
 serve(async (req) => {
-  if (req.method === "GET") {
-    return new Response("ok", { status: 200 });
-  }
-
-  if (req.method !== "POST") {
-    return new Response("method not allowed", { status: 405 });
-  }
-
+  if (req.method === "GET") return new Response("ok", { status: 200 });
+  
   try {
-    if (!MP_ACCESS_TOKEN) {
-      logError("mp_access_token_missing");
-      return new Response("mp access token missing", { status: 500 });
-    }
-
     const body = await req.json();
-    logInfo("mp_webhook_received", {
-      body_type: body?.type ?? body?.topic,
-      body_id: body?.data?.id ?? body?.id ?? body?.data_id,
-    });
+    logInfo("sandbox_webhook_received", body);
 
-    const topic = body.type ?? body.topic;
-    const dataId = String(body.data?.id ?? body.id ?? body.data_id ?? "");
+    // --- MODO SIMULADO ---
+    // En lugar de ir a buscar a MercadoPago, sacamos los datos del body que tú envíes
+    // O usamos valores por defecto para pruebas rápidas.
+    
+    const paymentId = body.payment_id ?? `fake_pmt_${Date.now()}`;
+    const userId = body.user_id; // DEBES enviar el user_id en tu prueba
+    const amountRequested = body.amount ?? 5000;
+    const amountCharged = amountRequested + (amountRequested * 0.01); // Simulamos la comisión del 1%
+    const feeAmount = amountCharged - amountRequested;
 
-    if (topic !== "payment" || !dataId) {
-      logInfo("mp_webhook_ignored", { topic, data_id: dataId || null });
-      return new Response("ignored", { status: 200 });
+    if (!userId || !isValidUuid(userId)) {
+      logError("sandbox_missing_user_id");
+      return new Response("missing valid user_id", { status: 400 });
     }
-
-    const signatureValid = await verifyMPSignature(req, dataId);
-    if (!signatureValid) {
-      return new Response("invalid signature", { status: 401 });
-    }
-
-    const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${dataId}`, {
-      headers: {
-        "Authorization": `Bearer ${MP_ACCESS_TOKEN}`,
-      },
-    });
-
-    if (!mpRes.ok) {
-      const response = await mpRes.text();
-      logError("mp_payment_fetch_failed", {
-        data_id: dataId,
-        status: mpRes.status,
-        response,
-      });
-      return new Response("payment fetch failed", { status: 200 });
-    }
-
-    const payment = await mpRes.json();
-    logInfo("mp_payment_fetched", {
-      payment_id: payment?.id,
-      status: payment?.status,
-      external_reference: payment?.external_reference,
-    });
-
-    if (payment.status !== "approved") {
-      logInfo("mp_payment_not_approved", {
-        payment_id: payment?.id,
-        status: payment?.status,
-      });
-      return new Response("not approved", { status: 200 });
-    }
-
-    const paymentId = String(payment.id);
-    const transactionAmount = Number(payment.transaction_amount);
-    if (!Number.isFinite(transactionAmount)) {
-      logError("mp_payment_invalid_amount", {
-        payment_id: paymentId,
-        transaction_amount: payment.transaction_amount,
-      });
-      return new Response("invalid amount", { status: 200 });
-    }
-
-    const chargedAmount = Math.round(transactionAmount);
-    const parsedRef = parseExternalReference(payment.external_reference ?? "", chargedAmount);
-    if (!parsedRef) {
-      logWarn("mp_payment_unrecognized_external_reference", {
-        payment_id: paymentId,
-        external_reference: payment.external_reference,
-      });
-      return new Response("unrecognized reference", { status: 200 });
-    }
-
-    if (chargedAmount !== parsedRef.amountCharged) {
-      logError("mp_payment_amount_mismatch", {
-        payment_id: paymentId,
-        charged_amount: chargedAmount,
-        expected_charged_amount: parsedRef.amountCharged,
-      });
-      return new Response("amount mismatch", { status: 200 });
-    }
-
-    const computedFeeAmount = feeFromAmounts(parsedRef.amountRequested, chargedAmount);
-    if (computedFeeAmount == null) {
-      logError("mp_payment_invalid_fee", {
-        payment_id: paymentId,
-        amount_requested: parsedRef.amountRequested,
-        amount_charged: chargedAmount,
-      });
-      return new Response("invalid fee", { status: 200 });
-    }
-
-    if (!parsedRef.isLegacy && !isFeeConsistent(parsedRef.amountRequested, computedFeeAmount)) {
-      logError("mp_payment_inconsistent_fee", {
-        payment_id: paymentId,
-        amount_requested: parsedRef.amountRequested,
-        amount_charged: chargedAmount,
-        fee_amount: computedFeeAmount,
-      });
-      return new Response("inconsistent fee", { status: 200 });
-    }
-
-    const feeAmount = parsedRef.isLegacy ? 0 : computedFeeAmount;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // 1. Evitar duplicados (opcional en sandbox, pero bueno para probar)
     const { data: existing } = await supabase
       .from("mp_payments")
       .select("external_payment_id")
@@ -299,46 +208,33 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existing) {
-      logInfo("mp_webhook_duplicate", { payment_id: paymentId });
       return new Response("already processed", { status: 200 });
     }
 
+    // 2. Llamamos al RPC que crearemos abajo para abonar la billetera
     const { error: creditErr } = await supabase.rpc("credit_wallet_topup", {
-      p_user_id: parsedRef.userId,
-      p_amount: parsedRef.amountRequested,
+      p_user_id: userId,
+      p_amount: amountRequested,
       p_external_payment_id: paymentId,
-      p_amount_charged: chargedAmount,
-      p_fee_amount: feeAmount,
-      p_provider: "mercadopago",
+      p_amount_charged: Math.round(amountCharged),
+      p_fee_amount: Math.round(feeAmount),
+      p_provider: "mercadopago_sandbox",
     });
 
     if (creditErr) {
-      logError("credit_wallet_topup_failed", {
-        payment_id: paymentId,
-        user_id: parsedRef.userId,
-        amount_requested: parsedRef.amountRequested,
-        charged_amount: chargedAmount,
-        fee_amount: feeAmount,
-        error: creditErr.message,
-      });
-      return new Response("credit failed", { status: 500 });
+      logError("credit_wallet_topup_failed", creditErr);
+      return new Response("db credit failed", { status: 500 });
     }
 
-    logInfo("wallet_topped_up", {
-      payment_id: paymentId,
-      user_id: parsedRef.userId,
-      amount_requested: parsedRef.amountRequested,
-      charged_amount: chargedAmount,
-      fee_amount: feeAmount,
-      legacy_external_reference: parsedRef.isLegacy,
-      provider: "mercadopago",
+    logInfo("wallet_topped_up_SUCCESS_SANDBOX", { userId, amountRequested });
+
+    return new Response(JSON.stringify({ status: "success", payment_id: paymentId }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
     });
 
-    return new Response("ok", { status: 200 });
   } catch (err) {
-    logError("mp_webhook_unhandled", {
-      message: err instanceof Error ? err.message : String(err),
-    });
+    logError("sandbox_unhandled_error", { message: String(err) });
     return new Response("internal error", { status: 500 });
   }
 });
