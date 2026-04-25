@@ -188,13 +188,17 @@ class _BookingScreenState extends State<BookingScreen> {
         context.go('/my-rides');
       }
     } catch (e) {
-      final errorMsg = e.toString();
-      debugPrint('Booking error: $errorMsg');
       if (mounted) {
-        AppSnackbar.show(
-          context,
-          errorMsg.isNotEmpty ? errorMsg : 'Error desconocido',
-          isError: true,
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Error de Reserva'),
+            content: Text('ERROR: ${e.toString()}'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx), child: const Text('OK'))
+            ],
+          ),
         );
       }
     } finally {
