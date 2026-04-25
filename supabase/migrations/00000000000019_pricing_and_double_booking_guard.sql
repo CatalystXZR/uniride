@@ -64,6 +64,24 @@ begin
 end $$;
 
 -- ----------
+-- 3b) Radial only for Chicureo
+-- ----------
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'rides_radial_chicureo_ck'
+  ) then
+    alter table rides
+      add constraint rides_radial_chicureo_ck
+      check (
+        is_radial = false
+        or (is_radial = true and origin_commune = 'Chicureo')
+      );
+  end if;
+end $$;
+
+-- ----------
 -- 4) Phase 5: No double booking (same passenger, overlapping time)
 -- ----------
 

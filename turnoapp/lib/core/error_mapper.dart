@@ -157,6 +157,10 @@ class AppErrorMapper {
       return 'Las recargas estan temporalmente deshabilitadas. Vuelve a intentar mas tarde.';
     }
 
+    if (text.contains('overlapping_booking') || text.contains('p0016')) {
+      return 'Ya tienes una reserva en un horario cercano. Cancela la anterior antes de tomar otra.';
+    }
+
     if (text.contains('provider_not_connected') ||
         text.contains('not_implemented')) {
       return 'El proveedor de pagos seleccionado aun no esta habilitado.';

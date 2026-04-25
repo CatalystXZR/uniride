@@ -408,7 +408,14 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                             .map((c) =>
                                 DropdownMenuItem(value: c, child: Text(c)))
                             .toList(),
-                        onChanged: (v) => setState(() => _selectedCommune = v),
+                        onChanged: (v) {
+                          setState(() {
+                            _selectedCommune = v;
+                            if (v != 'Chicureo') {
+                              _isRadial = false;
+                            }
+                          });
+                        },
                         validator: (v) => v != null ? null : 'Requerido',
                       ),
                       const SizedBox(height: 12),
@@ -487,11 +494,15 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         title: const Text('Ruta radial'),
-                        subtitle: const Text(
-                          'Disponible para extensiones futuras de pricing.',
+                        subtitle: Text(
+                          _selectedCommune != 'Chicureo'
+                              ? 'Solo disponible para Chicureo'
+                              : 'Extension de ruta desde Chicureo',
                         ),
                         value: _isRadial,
-                        onChanged: (v) => setState(() => _isRadial = v),
+                        onChanged: _selectedCommune == 'Chicureo'
+                            ? (v) => setState(() => _isRadial = v)
+                            : null,
                       ),
                     ],
                   ),
