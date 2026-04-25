@@ -193,9 +193,7 @@ class _BookingScreenState extends State<BookingScreen> {
       if (mounted) {
         AppSnackbar.show(
           context,
-          AppErrorMapper.toMessage(e,
-              fallback:
-                  'Error: ${errorMsg.substring(0, errorMsg.length.clamp(0, 100))}'),
+          errorMsg.isNotEmpty ? errorMsg : 'Error desconocido',
           isError: true,
         );
       }
