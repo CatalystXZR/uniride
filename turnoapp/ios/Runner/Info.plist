@@ -20,6 +20,15 @@
 	<string>TurnoApp usa la camara para que puedas tomar una foto de perfil.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>TurnoApp accede a tu galeria para que puedas elegir una foto de perfil.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TurnoApp usa tu ubicacion para mostrar rutas y puntos de encuentro.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>TurnoApp usa tu ubicacion en segundo plano para notificaciones de proximidad.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
