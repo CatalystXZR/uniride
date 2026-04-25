@@ -166,6 +166,22 @@ class AppErrorMapper {
       return 'El proveedor de pagos seleccionado aun no esta habilitado.';
     }
 
+    if (text.contains('p0017') ||
+        text.contains('auto_expired') ||
+        text.contains('passenger_no_board')) {
+      return 'La reserva expiro porque nunca confirmaste abordaje.';
+    }
+
+    if (text.contains('double_book_guard') ||
+        text.contains('overlapping_ride')) {
+      return 'Ya tienes una reserva en un horario que se cruza con este turno.';
+    }
+
+    if (text.contains('no_show_threshold') ||
+        text.contains('report_too_late')) {
+      return 'Ya no puedes reportar. El viaje finalizo.';
+    }
+
     return fallback;
   }
 }
