@@ -140,6 +140,13 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Future<void> _confirmBooking() async {
     if (_ride == null) return;
+
+    print('=== BOOKING DEBUG ===');
+    print('rideId: ${widget.rideId}');
+    print('wallet: ${_wallet?.balanceAvailable}');
+    print('price: ${_ride!.seatPrice}');
+    print('===================');
+
     final balance = _wallet?.balanceAvailable ?? 0;
     final price = _ride!.seatPrice;
 
