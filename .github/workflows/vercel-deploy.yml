@@ -26,6 +26,9 @@ jobs:
         working-directory: turnoapp
         run: flutter pub get
 
+      - name: Cache-bust — touch timestamp file to invalidate Vercel build cache
+        run: date +%s > turnoapp/build_ts.txt
+
       - name: Analyze Flutter code
         working-directory: turnoapp
         run: flutter analyze --no-fatal-infos
@@ -48,7 +51,8 @@ jobs:
 
       - name: Copy Vercel and legal static files
         run: |
-          cp turnoapp/vercel.json turnoapp/build/web/vercel.json
+          mv turnoapp/vercel.json turnoapp/vercel.json.bak
+          cp turnoapp/vercel.json.bak turnoapp/build/web/vercel.json
           cp turnoapp/web/privacy.html turnoapp/build/web/privacy.html
           cp turnoapp/web/support.html turnoapp/build/web/support.html
 
