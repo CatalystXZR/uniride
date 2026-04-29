@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../app/theme.dart';
 import '../../core/error_mapper.dart';
-import '../../services/auth_service.dart';
 import '../../services/profile_service.dart';
 import '../../services/wallet_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
@@ -21,7 +20,6 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _profileService = ProfileService();
-  final _authService = AuthService();
   final _walletService = WalletService();
   final _picker = ImagePicker();
 
