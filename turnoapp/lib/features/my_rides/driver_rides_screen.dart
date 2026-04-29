@@ -12,8 +12,6 @@
  *
  */
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -46,7 +44,6 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
   bool _busy = false;
   String? _busyMessage;
   Set<String> _favoritePassengerIds = <String>{};
-  Timer? _pollTimer;
 
   Future<void> _runBusy(
     String message,
@@ -115,22 +112,12 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     Future.microtask(() => ref.read(driverRidesProvider.notifier).load());
-    _startPolling();
   }
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
     _tabController.dispose();
     super.dispose();
-  }
-
-  void _startPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (!mounted) return;
-      _load();
-    });
   }
 
   Future<void> _load() async {
@@ -525,60 +512,107 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
           ),
         ),
         body: DecorativeBackground(
-          child: state.loading
+          child: state.loading && state.errorMessage == null
               ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      activeRides.isEmpty && pastRides.isEmpty
-                          ? const _EmptyState(
-                              message: 'No has publicado turnos aun',
-                            )
-                          : ListView(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              children: [
-                                if (activeRides.isNotEmpty) ...[
-                                  const _SectionHeader(title: 'Activos'),
-                                  ...activeRides.map(
-                                    (r) => _RideCard(
-                                      ride: r,
-                                      onCancel: () => _cancelRide(r),
-                                      onComplete: () => _completeRideAction(r),
-                                    ),
+              : state.errorMessage != null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.cloud_off,
+                                size: 64, color: AppTheme.subtle),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'No pudimos cargar tus turnos',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 16),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              state.errorMessage!,
+                              style: const TextStyle(
+                                  color: AppTheme.subtle, fontSize: 12),
+                              textAlign: TextAlign.center,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                ref
+                                    .read(driverRidesProvider.notifier)
+                                    .clearError();
+                                _load();
+                              },
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Reintentar'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          activeRides.isEmpty && pastRides.isEmpty
+                              ? const _EmptyState(
+                                  message: 'No has publicado turnos aun',
+                                )
+                              : ListView(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 6),
+                                  children: [
+                                    if (activeRides.isNotEmpty) ...[
+                                      const _SectionHeader(title: 'Activos'),
+                                      ...activeRides.map(
+                                        (r) => _RideCard(
+                                          ride: r,
+                                          onCancel: () => _cancelRide(r),
+                                          onComplete: () =>
+                                              _completeRideAction(r),
+                                        ),
+                                      ),
+                                    ],
+                                    if (pastRides.isNotEmpty) ...[
+                                      const _SectionHeader(title: 'Historial'),
+                                      ...pastRides
+                                          .map((r) => _RideCard(ride: r)),
+                                    ],
+                                  ],
+                                ),
+                          state.bookings.isEmpty
+                              ? const _EmptyState(
+                                  message: 'Sin pasajeros registrados',
+                                )
+                              : ListView.builder(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 6),
+                                  itemCount: state.bookings.length,
+                                  itemBuilder: (ctx, i) =>
+                                      _PassengerBookingCard(
+                                    booking: state.bookings[i],
+                                    onAccept: _acceptBooking,
+                                    onReject: _rejectBooking,
+                                    onMarkArriving: _markArriving,
+                                    onMarkArrived: _markArrived,
+                                    onStartTrip: _startTrip,
+                                    onCompleteTrip: _completeTrip,
+                                    onFavoritePassenger:
+                                        _toggleFavoritePassenger,
+                                    isFavoritePassenger:
+                                        _favoritePassengerIds.contains(
+                                            state.bookings[i].passengerId),
+                                    onReviewPassenger: _reviewPassenger,
                                   ),
-                                ],
-                                if (pastRides.isNotEmpty) ...[
-                                  const _SectionHeader(title: 'Historial'),
-                                  ...pastRides.map((r) => _RideCard(ride: r)),
-                                ],
-                              ],
-                            ),
-                      state.bookings.isEmpty
-                          ? const _EmptyState(
-                              message: 'Sin pasajeros registrados',
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              itemCount: state.bookings.length,
-                              itemBuilder: (ctx, i) => _PassengerBookingCard(
-                                booking: state.bookings[i],
-                                onAccept: _acceptBooking,
-                                onReject: _rejectBooking,
-                                onMarkArriving: _markArriving,
-                                onMarkArrived: _markArrived,
-                                onStartTrip: _startTrip,
-                                onCompleteTrip: _completeTrip,
-                                onFavoritePassenger: _toggleFavoritePassenger,
-                                isFavoritePassenger: _favoritePassengerIds
-                                    .contains(state.bookings[i].passengerId),
-                                onReviewPassenger: _reviewPassenger,
-                              ),
-                            ),
-                    ],
-                  ),
-                ),
+                                ),
+                        ],
+                      ),
+                    ),
         ),
       ),
     );

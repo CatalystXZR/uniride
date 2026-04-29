@@ -11,22 +11,26 @@ class DriverRidesState {
   final List<Ride> rides;
   final List<Booking> bookings;
   final bool loading;
+  final String? errorMessage;
 
   const DriverRidesState({
     this.rides = const [],
     this.bookings = const [],
     this.loading = true,
+    this.errorMessage,
   });
 
   DriverRidesState copyWith({
     List<Ride>? rides,
     List<Booking>? bookings,
     bool? loading,
+    String? errorMessage,
   }) {
     return DriverRidesState(
       rides: rides ?? this.rides,
       bookings: bookings ?? this.bookings,
       loading: loading ?? this.loading,
+      errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 }
@@ -53,9 +57,14 @@ class DriverRidesNotifier extends StateNotifier<DriverRidesState> {
   Future<void> load() async {
     if (_loading) return;
     _loading = true;
-    state = state.copyWith(loading: true);
+    state = state.copyWith(loading: true, errorMessage: null);
     try {
       await _fetch();
+    } catch (e) {
+      state = state.copyWith(
+        loading: false,
+        errorMessage: e.toString(),
+      );
     } finally {
       _loading = false;
     }
@@ -66,6 +75,8 @@ class DriverRidesNotifier extends StateNotifier<DriverRidesState> {
     _loading = true;
     try {
       await _fetch();
+    } catch (_) {
+      // silent on poll errors, UI already reflects last state
     } finally {
       _loading = false;
     }
@@ -83,9 +94,14 @@ class DriverRidesNotifier extends StateNotifier<DriverRidesState> {
       rides: results[0] as List<Ride>,
       bookings: results[1] as List<Booking>,
       loading: false,
+      errorMessage: null,
     );
     await BookingNotificationService.instance
         .syncDriverBookings(results[1] as List<Booking>);
+  }
+
+  void clearError() {
+    state = state.copyWith(errorMessage: null);
   }
 
   Future<void> cancelRide(String rideId, {required String reason}) async {
