@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/booking.dart';
 import '../models/ride.dart';
 import '../services/booking_notification_service.dart';
+import 'in_app_notification_provider.dart';
 import 'service_providers.dart';
 
 class DriverRidesState {
@@ -37,6 +38,15 @@ class DriverRidesState {
 
 class DriverRidesNotifier extends StateNotifier<DriverRidesState> {
   DriverRidesNotifier(this._ref) : super(const DriverRidesState()) {
+    BookingNotificationService.instance.setInAppNotifyCallback((notif) {
+      _ref.read(inAppNotificationProvider.notifier).add(
+            title: notif.title,
+            body: notif.body,
+            bookingId: notif.bookingId,
+            rideId: notif.rideId,
+            notifId: notif.id.hashCode,
+          );
+    });
     load();
     _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
   }
@@ -44,7 +54,7 @@ class DriverRidesNotifier extends StateNotifier<DriverRidesState> {
   final Ref _ref;
   Timer? _pollTimer;
 
-  static const _pollInterval = Duration(seconds: 30);
+  static const _pollInterval = Duration(seconds: 5);
 
   bool _loading = false;
 

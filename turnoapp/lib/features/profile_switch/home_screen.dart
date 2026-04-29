@@ -23,6 +23,7 @@ import '../../core/error_mapper.dart';
 import '../../models/enums.dart';
 import '../../models/user_profile.dart';
 import '../../providers/home_provider.dart';
+import '../../providers/in_app_notification_provider.dart';
 import '../../providers/service_providers.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/decorative_background.dart';
@@ -398,6 +399,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final profile = state.profile;
     final wallet = state.wallet;
     final isDriver = profile?.roleMode == RoleMode.driver;
+    final notifState = ref.watch(inAppNotificationProvider);
+    final unreadCount = notifState.unreadCount;
 
     if (!state.loading && !_fadeController.isCompleted) {
       _fadeController.forward();
@@ -416,6 +419,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         appBar: AppBar(
           title: const Text('TurnoApp'),
           actions: [
+            Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: () => context.push('/notifications'),
+                ),
+                if (unreadCount > 0)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: AppTheme.danger,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Text(
+                        unreadCount > 99 ? '99+' : unreadCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             IconButton(
               icon: const Icon(Icons.account_balance_wallet_outlined),
               onPressed: () => context.push('/wallet'),

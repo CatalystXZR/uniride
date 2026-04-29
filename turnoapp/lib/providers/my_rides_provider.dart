@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/booking.dart';
 import '../services/booking_notification_service.dart';
+import 'in_app_notification_provider.dart';
 import 'service_providers.dart';
 
 class MyRidesState {
@@ -20,6 +21,15 @@ class MyRidesState {
 
 class MyRidesNotifier extends StateNotifier<MyRidesState> {
   MyRidesNotifier(this._ref) : super(const MyRidesState()) {
+    BookingNotificationService.instance.setInAppNotifyCallback((notif) {
+      _ref.read(inAppNotificationProvider.notifier).add(
+            title: notif.title,
+            body: notif.body,
+            bookingId: notif.bookingId,
+            rideId: notif.rideId,
+            notifId: notif.id.hashCode,
+          );
+    });
     load();
   }
 

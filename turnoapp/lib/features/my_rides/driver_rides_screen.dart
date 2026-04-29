@@ -14,6 +14,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/theme.dart';
@@ -22,6 +23,7 @@ import '../../models/booking.dart';
 import '../../models/enums.dart';
 import '../../models/ride.dart';
 import '../../providers/driver_rides_provider.dart';
+import '../../providers/in_app_notification_provider.dart';
 import '../../services/favorites_service.dart';
 import '../../services/review_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
@@ -477,6 +479,41 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Mis turnos'),
+          actions: [
+            Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: () => context.push('/notifications'),
+                ),
+                if (pendingCount > 0)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: AppTheme.danger,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Text(
+                        pendingCount > 99 ? '99+' : pendingCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
           bottom: TabBar(
             controller: _tabController,
             tabs: [
