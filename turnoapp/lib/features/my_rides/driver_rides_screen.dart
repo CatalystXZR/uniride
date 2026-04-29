@@ -627,31 +627,51 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
                                     ],
                                   ],
                                 ),
-                          state.bookings.isEmpty
-                              ? const _EmptyState(
-                                  message: 'Sin pasajeros registrados',
-                                )
-                              : ListView.builder(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 6),
-                                  itemCount: state.bookings.length,
-                                  itemBuilder: (ctx, i) =>
-                                      _PassengerBookingCard(
-                                    booking: state.bookings[i],
-                                    onAccept: _acceptBooking,
-                                    onReject: _rejectBooking,
-                                    onMarkArriving: _markArriving,
-                                    onMarkArrived: _markArrived,
-                                    onStartTrip: _startTrip,
-                                    onCompleteTrip: _completeTrip,
-                                    onFavoritePassenger:
-                                        _toggleFavoritePassenger,
-                                    isFavoritePassenger:
-                                        _favoritePassengerIds.contains(
-                                            state.bookings[i].passengerId),
-                                    onReviewPassenger: _reviewPassenger,
+                          Column(
+                            children: [
+                              Container(
+                                width: double.infinity,
+                                color: const Color(0xFFFFEB3B),
+                                padding: const EdgeInsets.all(6),
+                                child: Text(
+                                  'DEBUG: bookings=${state.bookings.length} loading=${state.loading} error=${state.errorMessage ?? "null"}',
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 12,
                                   ),
                                 ),
+                              ),
+                              Expanded(
+                                child: state.bookings.isEmpty
+                                    ? const _EmptyState(
+                                        message: 'Sin pasajeros registrados',
+                                      )
+                                    : ListView.builder(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 6),
+                                        itemCount: state.bookings.length,
+                                        itemBuilder: (ctx, i) =>
+                                            _PassengerBookingCard(
+                                          booking: state.bookings[i],
+                                          onAccept: _acceptBooking,
+                                          onReject: _rejectBooking,
+                                          onMarkArriving: _markArriving,
+                                          onMarkArrived: _markArrived,
+                                          onStartTrip: _startTrip,
+                                          onCompleteTrip: _completeTrip,
+                                          onFavoritePassenger:
+                                              _toggleFavoritePassenger,
+                                          isFavoritePassenger:
+                                              _favoritePassengerIds.contains(
+                                                  state
+                                                      .bookings[i].passengerId),
+                                          onReviewPassenger: _reviewPassenger,
+                                        ),
+                                      ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
