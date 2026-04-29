@@ -22,7 +22,6 @@ import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
 import '../../models/booking.dart';
 import '../../models/enums.dart';
-import '../../providers/in_app_notification_provider.dart';
 import '../../providers/my_rides_provider.dart';
 import '../../services/favorites_service.dart';
 import '../../services/review_service.dart';

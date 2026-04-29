@@ -23,7 +23,6 @@ import '../../models/booking.dart';
 import '../../models/enums.dart';
 import '../../models/ride.dart';
 import '../../providers/driver_rides_provider.dart';
-import '../../providers/in_app_notification_provider.dart';
 import '../../services/favorites_service.dart';
 import '../../services/review_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
