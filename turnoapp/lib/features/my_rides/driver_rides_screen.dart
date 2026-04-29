@@ -463,6 +463,10 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
     });
   }
 
+  void _openActiveRide(Ride ride) {
+    context.push('/driver-ride/${ride.id}');
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(driverRidesProvider);
@@ -612,6 +616,8 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
                                           onCancel: () => _cancelRide(r),
                                           onComplete: () =>
                                               _completeRideAction(r),
+                                          onOpenActiveRide: () =>
+                                              _openActiveRide(r),
                                         ),
                                       ),
                                     ],
@@ -660,8 +666,13 @@ class _RideCard extends StatelessWidget {
   final Ride ride;
   final VoidCallback? onCancel;
   final VoidCallback? onComplete;
+  final VoidCallback? onOpenActiveRide;
 
-  const _RideCard({required this.ride, this.onCancel, this.onComplete});
+  const _RideCard(
+      {required this.ride,
+      this.onCancel,
+      this.onComplete,
+      this.onOpenActiveRide});
 
   @override
   Widget build(BuildContext context) {
@@ -738,6 +749,21 @@ class _RideCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (ride.isActive && onOpenActiveRide != null) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: onOpenActiveRide,
+                  icon: const Icon(Icons.list_alt_outlined),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  label: const Text('Gestionar viaje'),
+                ),
+              ),
+            ],
             if (ride.isActive && onCancel != null) ...[
               const SizedBox(height: 10),
               SizedBox(

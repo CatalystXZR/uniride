@@ -133,16 +133,16 @@ class BookingNotificationService {
         return _DriverEvent('Reserva cancelada', '$name cancelo su reserva.');
       case BookingDispatchStatus.noShow:
         return _DriverEvent(
-            'Viaje no-show', 'El viaje con $name fue marcado como no-show.');
+            'Viaje no-show', 'El viaje con $name fue cerrado como no-show.');
       case BookingDispatchStatus.passengerBoarded:
         return _DriverEvent('Pasajero a bordo',
-            '$name confirmo abordaje. Ya puedes iniciar viaje.');
+            '$name confirmo abordaje. Ya puedes iniciar el viaje.');
       case BookingDispatchStatus.inProgress:
         return _DriverEvent(
             'Viaje en curso', 'El viaje con $name esta en curso.');
       case BookingDispatchStatus.completed:
         return _DriverEvent('Viaje finalizado',
-            'El viaje con $name fue completado y liquidado.');
+            'El viaje con $name fue completado y liquidado a tu billetera.');
       case BookingDispatchStatus.driverArriving:
       case BookingDispatchStatus.driverArrived:
         return null;
@@ -154,15 +154,15 @@ class BookingNotificationService {
   String? _passengerTransitionMessage(Booking booking) {
     switch (booking.dispatchStatus) {
       case BookingDispatchStatus.accepted:
-        return 'Tu reserva fue aceptada por ${booking.driverName ?? 'el conductor'}.';
+        return 'Te han confirmado el Ride! ${booking.driverName ?? 'El conductor'} acepto tu reserva.';
       case BookingDispatchStatus.driverArriving:
-        return '${booking.driverName ?? 'Tu conductor'} va en camino al punto de encuentro.';
+        return 'El rider va en camino! ${booking.driverName ?? 'Tu conductor'} se dirige al punto de encuentro.';
       case BookingDispatchStatus.driverArrived:
-        return '${booking.driverName ?? 'Tu conductor'} ya llego al punto de encuentro.';
+        return 'El rider ha llegado! ${booking.driverName ?? 'Tu conductor'} ya esta en el punto de encuentro.';
       case BookingDispatchStatus.inProgress:
-        return 'Tu viaje ya comenzo.';
+        return 'Viaje en curso.';
       case BookingDispatchStatus.completed:
-        return 'Tu viaje finalizo. Puedes dejar una resena.';
+        return 'Viaje finalizado. Puedes calificar a ${booking.driverName ?? 'tu conductor'}.';
       case BookingDispatchStatus.cancelled:
         return 'Tu reserva fue cancelada.';
       case BookingDispatchStatus.noShow:

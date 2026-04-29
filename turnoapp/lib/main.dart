@@ -20,6 +20,7 @@ import 'app/app.dart';
 import 'app/theme.dart';
 import 'core/error_mapper.dart';
 import 'services/notification_service.dart';
+import 'services/push_notification_service.dart';
 import 'shared/widgets/app_snackbar.dart';
 
 Future<void> main() async {
@@ -32,6 +33,7 @@ Future<void> main() async {
     SupabaseConfig.ensureConfigured();
     await SupabaseConfig.initialize();
     await NotificationService.instance.initialize();
+    await PushNotificationService.instance.initialize();
   } catch (_) {
     runApp(const _ConfigurationErrorApp());
     return;

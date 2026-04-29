@@ -286,32 +286,49 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
 
     final statusItems = <_StatusStep>[
       _StatusStep(
+        icon: Icons.check_circle_outline,
         label: 'Reserva creada',
+        subtitle: 'Esperando confirmacion del conductor',
         done: true,
       ),
       _StatusStep(
-        label: 'Conductor acepto',
+        icon: Icons.person_add_outlined,
+        label: 'Te han confirmado el Ride!',
+        subtitle: 'El conductor acepto tu reserva',
         done: reached(BookingDispatchStatus.accepted),
       ),
       _StatusStep(
-        label: 'Conductor en camino',
+        icon: Icons.route_outlined,
+        label: 'El rider va en camino!',
+        subtitle: 'Se dirige al punto de encuentro',
         done: reached(BookingDispatchStatus.driverArriving),
       ),
       _StatusStep(
-        label: 'Conductor llego',
+        icon: Icons.place_outlined,
+        label: 'El rider ha llegado!',
+        subtitle: 'Ya esta en el punto de encuentro',
         done: reached(BookingDispatchStatus.driverArrived),
+        highlight: true,
       ),
       _StatusStep(
-        label: 'Abordaje confirmado',
+        icon: Icons.directions_car_outlined,
+        label: 'Ya estas abordo',
+        subtitle: 'Viaje en curso',
         done: reached(BookingDispatchStatus.passengerBoarded),
       ),
       _StatusStep(
+        icon: Icons.navigation_outlined,
         label: 'Viaje en curso',
+        subtitle: 'Viaje en curso',
         done: reached(BookingDispatchStatus.inProgress),
+        highlight: true,
       ),
       _StatusStep(
+        icon: Icons.flag_outlined,
         label: 'Viaje finalizado',
+        subtitle: 'Llegaste a destino',
         done: reached(BookingDispatchStatus.completed),
+        highlight: true,
       ),
     ];
 
@@ -418,20 +435,65 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                       const SizedBox(height: 10),
                       ...statusItems.map(
                         (step) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.symmetric(vertical: 5),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                step.done
-                                    ? Icons.check_circle
-                                    : Icons.radio_button_unchecked,
-                                size: 18,
-                                color: step.done
-                                    ? const Color(0xFF178E68)
-                                    : const Color(0xFF9AA8B5),
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: step.done
+                                      ? (step.highlight
+                                              ? const Color(0xFF178E68)
+                                              : const Color(0xFF178E68))
+                                          .withValues(alpha: 0.12)
+                                      : const Color(0xFF9AA8B5)
+                                          .withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  step.done ? Icons.check_circle : step.icon,
+                                  size: 16,
+                                  color: step.done
+                                      ? (step.highlight
+                                          ? const Color(0xFF178E68)
+                                          : const Color(0xFF178E68))
+                                      : const Color(0xFF9AA8B5),
+                                ),
                               ),
-                              const SizedBox(width: 8),
-                              Text(step.label),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      step.label,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: step.done
+                                            ? FontWeight.w600
+                                            : FontWeight.w400,
+                                        color: step.done
+                                            ? (step.highlight
+                                                ? const Color(0xFF178E68)
+                                                : Colors.black87)
+                                            : const Color(0xFF9AA8B5),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      step.subtitle,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: step.done
+                                            ? AppTheme.subtle
+                                            : const Color(0xFF9AA8B5),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -546,8 +608,17 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
 }
 
 class _StatusStep {
+  final IconData icon;
   final String label;
+  final String subtitle;
   final bool done;
+  final bool highlight;
 
-  const _StatusStep({required this.label, required this.done});
+  const _StatusStep({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.done,
+    this.highlight = false,
+  });
 }
