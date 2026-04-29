@@ -90,7 +90,7 @@ begin
   elsif p_new_status = 'completed' then
     v_notify_user_id := v_passenger_id;
     v_title := 'Viaje finalizado';
-    v_body := 'Tu viaje ha finalizado. Puedes dejar una resena a ' || v_driver_name || '.';
+    v_body := 'Tu viaje ha finalizado. Puedes dejar una reseña a ' || v_driver_name || '.';
   end if;
 
   if v_notify_user_id is not null then

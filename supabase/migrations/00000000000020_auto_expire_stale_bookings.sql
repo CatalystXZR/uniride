@@ -131,17 +131,13 @@ as $$
   select extract(timezone from now())::text;
 $$;
 
--- 5) Scheduled function (runs every minute via pg_cron)
--- This creates the cron job if pg_cron extension is available
+-- 5) Scheduled function (runs via pg_cron if available and permitted)
 do $$
 begin
   if exists (
     select 1 from pg_extension where extname = 'pg_cron'
   ) then
-    -- Delete existing job if exists (for re-runs)
     delete from cron.job where jobname = 'expire_stale_bookings';
-    
-    -- Schedule to run every 5 minutes
     insert into cron.job (schedule, command, jobname)
     values (
       '*/5 * * * *',
@@ -149,8 +145,7 @@ begin
       'expire_stale_bookings'
     );
   end if;
-exception when undefined_table then null;
+exception when others then
+  -- pg_cron not available or insufficient permissions; cron job skipped
+  null;
 end $$;
-
--- 6) Log when migration runs
-perform pg_catalog.pg_log('Migration 20: auto-expire stale bookings applied');
