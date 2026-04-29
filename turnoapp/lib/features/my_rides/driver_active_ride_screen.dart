@@ -1141,6 +1141,25 @@ class _PassengerCard extends StatelessWidget {
           ),
         ),
       );
+    } else if (booking.isReserved &&
+        booking.dispatchStatus == BookingDispatchStatus.driverArrived) {
+      actions.add(
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Icon(Icons.access_time, size: 16, color: AppTheme.subtle),
+              SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Esperando que el pasajero confirme abordaje...',
+                  style: TextStyle(color: AppTheme.subtle, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     } else if (booking.canDriverStartTrip) {
       actions.add(
         SizedBox(

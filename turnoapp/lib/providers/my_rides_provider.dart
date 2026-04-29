@@ -55,7 +55,8 @@ class MyRidesNotifier extends StateNotifier<MyRidesState> {
     state = state.copyWith(loading: true);
     try {
       final service = _ref.read(bookingServiceProvider);
-      final rows = await service.getMyBookings();
+      final rows =
+          await service.getMyBookings().timeout(const Duration(seconds: 15));
       await BookingNotificationService.instance.syncPassengerBookings(rows);
       if (!mounted) return;
       state = state.copyWith(bookings: rows, loading: false);
@@ -73,8 +74,9 @@ class MyRidesNotifier extends StateNotifier<MyRidesState> {
       await BookingNotificationService.instance.syncPassengerBookings(rows);
       if (!mounted) return;
       state = state.copyWith(bookings: rows, loading: false);
-    } catch (_) {
-      // silent on poll errors
+    } catch (e) {
+      // ignore: avoid_print
+      print('MyRidesNotifier._poll error silenciado: $e');
       if (!mounted) return;
       state = state.copyWith(loading: false);
     } finally {

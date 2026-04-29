@@ -126,6 +126,9 @@ class Booking {
         case 'no_show':
           return BookingDispatchStatus.noShow;
         default:
+          // ignore: avoid_print
+          print(
+              '⚠ dispatch_status desconocido desde API: "$s", usando reserved');
           return BookingDispatchStatus.reserved;
       }
     }

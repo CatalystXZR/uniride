@@ -69,7 +69,7 @@ class DriverRidesNotifier extends StateNotifier<DriverRidesState> {
     _loading = true;
     state = state.copyWith(loading: true, errorMessage: null);
     try {
-      await _fetch();
+      await _fetch().timeout(const Duration(seconds: 15));
     } catch (e) {
       state = state.copyWith(
         loading: false,
@@ -85,8 +85,9 @@ class DriverRidesNotifier extends StateNotifier<DriverRidesState> {
     _loading = true;
     try {
       await _fetch();
-    } catch (_) {
-      // silent on poll errors, UI already reflects last state
+    } catch (e) {
+      // ignore: avoid_print
+      print('DriverRidesNotifier._poll error silenciado: $e');
     } finally {
       _loading = false;
     }
