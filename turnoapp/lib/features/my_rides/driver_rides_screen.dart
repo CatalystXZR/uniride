@@ -12,6 +12,8 @@
  *
  */
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -44,6 +46,7 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
   bool _busy = false;
   String? _busyMessage;
   Set<String> _favoritePassengerIds = <String>{};
+  Timer? _pollTimer;
 
   Future<void> _runBusy(
     String message,
@@ -112,12 +115,22 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     Future.microtask(() => ref.read(driverRidesProvider.notifier).load());
+    _startPolling();
   }
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      _load();
+    });
   }
 
   Future<void> _load() async {
@@ -466,6 +479,10 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
     final state = ref.watch(driverRidesProvider);
     final activeRides = state.rides.where((r) => r.isActive).toList();
     final pastRides = state.rides.where((r) => !r.isActive).toList();
+    final pendingCount = state.bookings
+        .where((b) =>
+            b.isReserved && b.dispatchStatus == BookingDispatchStatus.reserved)
+        .length;
 
     return LoadingOverlay(
       isLoading: _busy,
@@ -475,9 +492,35 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
           title: const Text('Mis turnos'),
           bottom: TabBar(
             controller: _tabController,
-            tabs: const [
+            tabs: [
               Tab(text: 'Activos'),
-              Tab(text: 'Pasajeros'),
+              Tab(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Pasajeros'),
+                    if (pendingCount > 0) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.danger,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          pendingCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ],
           ),
         ),

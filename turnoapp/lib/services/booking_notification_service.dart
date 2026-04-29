@@ -57,9 +57,6 @@ class BookingNotificationService {
       _driverSnapshot[booking.id] = key;
 
       if (prev == null) {
-        if (!shouldNotify) {
-          continue;
-        }
         if (booking.status == BookingStatus.reserved &&
             booking.dispatchStatus == BookingDispatchStatus.reserved) {
           await NotificationService.instance.show(
@@ -73,6 +70,8 @@ class BookingNotificationService {
       }
 
       if (prev == key) continue;
+
+      if (!shouldNotify) continue;
 
       if (booking.dispatchStatus == BookingDispatchStatus.passengerBoarded) {
         await NotificationService.instance.show(
