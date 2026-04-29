@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/booking.dart';
@@ -32,18 +34,51 @@ class DriverRidesState {
 class DriverRidesNotifier extends StateNotifier<DriverRidesState> {
   DriverRidesNotifier(this._ref) : super(const DriverRidesState()) {
     load();
+    _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
   }
 
   final Ref _ref;
+  Timer? _pollTimer;
+
+  static const _pollInterval = Duration(seconds: 30);
+
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
 
   Future<void> load() async {
+    if (_loading) return;
+    _loading = true;
     state = state.copyWith(loading: true);
+    try {
+      await _fetch();
+    } finally {
+      _loading = false;
+    }
+  }
+
+  Future<void> _poll() async {
+    if (_loading) return;
+    _loading = true;
+    try {
+      await _fetch();
+    } finally {
+      _loading = false;
+    }
+  }
+
+  Future<void> _fetch() async {
     final rideService = _ref.read(rideServiceProvider);
     final bookingService = _ref.read(bookingServiceProvider);
     final results = await Future.wait([
       rideService.getMyRides(),
       bookingService.getBookingsForMyRides(),
     ]);
+    if (!mounted) return;
     state = state.copyWith(
       rides: results[0] as List<Ride>,
       bookings: results[1] as List<Booking>,
