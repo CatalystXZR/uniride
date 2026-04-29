@@ -594,60 +594,60 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
                         ),
                       ),
                     )
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          activeRides.isEmpty && pastRides.isEmpty
-                              ? const _EmptyState(
-                                  message: 'No has publicado turnos aun',
-                                )
-                              : ListView(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 6),
-                                  children: [
-                                    if (activeRides.isNotEmpty) ...[
-                                      const _SectionHeader(title: 'Activos'),
-                                      ...activeRides.map(
-                                        (r) => _RideCard(
-                                          ride: r,
-                                          onCancel: () => _cancelRide(r),
-                                          onComplete: () =>
-                                              _completeRideAction(r),
-                                          onOpenActiveRide: () =>
-                                              _openActiveRide(r),
-                                        ),
-                                      ),
-                                    ],
-                                    if (pastRides.isNotEmpty) ...[
-                                      const _SectionHeader(title: 'Historial'),
-                                      ...pastRides
-                                          .map((r) => _RideCard(ride: r)),
-                                    ],
-                                  ],
-                                ),
-                          Column(
-                            children: [
-                              Container(
-                                width: double.infinity,
-                                color: const Color(0xFFFFEB3B),
-                                padding: const EdgeInsets.all(6),
-                                child: Text(
-                                  'DEBUG: bookings=${state.bookings.length} loading=${state.loading} error=${state.errorMessage ?? "null"}',
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 12,
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        if (activeRides.isEmpty && pastRides.isEmpty)
+                          const _EmptyState(
+                            message: 'No has publicado turnos aun',
+                          )
+                        else
+                          RefreshIndicator(
+                            onRefresh: _load,
+                            child: ListView(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              children: [
+                                if (activeRides.isNotEmpty) ...[
+                                  const _SectionHeader(title: 'Activos'),
+                                  ...activeRides.map(
+                                    (r) => _RideCard(
+                                      ride: r,
+                                      onCancel: () => _cancelRide(r),
+                                      onComplete: () => _completeRideAction(r),
+                                      onOpenActiveRide: () =>
+                                          _openActiveRide(r),
+                                    ),
                                   ),
+                                ],
+                                if (pastRides.isNotEmpty) ...[
+                                  const _SectionHeader(title: 'Historial'),
+                                  ...pastRides.map((r) => _RideCard(ride: r)),
+                                ],
+                              ],
+                            ),
+                          ),
+                        Column(
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              color: const Color(0xFFFFEB3B),
+                              padding: const EdgeInsets.all(6),
+                              child: Text(
+                                'DEBUG: bookings=${state.bookings.length} loading=${state.loading} error=${state.errorMessage ?? "null"}',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 12,
                                 ),
                               ),
-                              Expanded(
-                                child: state.bookings.isEmpty
-                                    ? const _EmptyState(
-                                        message: 'Sin pasajeros registrados',
-                                      )
-                                    : ListView.builder(
+                            ),
+                            Expanded(
+                              child: state.bookings.isEmpty
+                                  ? const _EmptyState(
+                                      message: 'Sin pasajeros registrados')
+                                  : RefreshIndicator(
+                                      onRefresh: _load,
+                                      child: ListView.builder(
                                         padding: const EdgeInsets.symmetric(
                                             vertical: 6),
                                         itemCount: state.bookings.length,
@@ -669,11 +669,11 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
                                           onReviewPassenger: _reviewPassenger,
                                         ),
                                       ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
         ),
       ),
