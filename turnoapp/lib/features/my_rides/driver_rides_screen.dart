@@ -909,29 +909,33 @@ class _PassengerBookingCard extends StatelessWidget {
     final actions = <Widget>[];
     if (booking.isReserved &&
         booking.dispatchStatus == BookingDispatchStatus.reserved) {
-      actions.addAll([
-        Expanded(
-          child: OutlinedButton(
-            onPressed: onReject == null ? null : () => onReject!(booking),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.danger,
-              side: const BorderSide(color: AppTheme.danger),
+      actions.add(
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: onReject == null ? null : () => onReject!(booking),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.danger,
+                  side: const BorderSide(color: AppTheme.danger),
+                ),
+                child: const Text('Rechazar'),
+              ),
             ),
-            child: const Text('Rechazar'),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: onAccept == null ? null : () => onAccept!(booking),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF178E68),
-              foregroundColor: Colors.white,
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: onAccept == null ? null : () => onAccept!(booking),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF178E68),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Aceptar'),
+              ),
             ),
-            child: const Text('Aceptar'),
-          ),
+          ],
         ),
-      ]);
+      );
     } else if (booking.isReserved &&
         booking.dispatchStatus == BookingDispatchStatus.accepted) {
       actions.add(
