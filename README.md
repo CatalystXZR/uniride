@@ -14,7 +14,7 @@ Construida como **Flutter Web PWA** con backend en **Supabase**.
 | Backend | Supabase (Postgres + Auth + Edge Functions) |
 | Navegación | go_router 13 |
 | Estado frontend | Riverpod |
-| Pagos | Provider-aware (disabled, Mercado Pago, Stripe-ready) |
+| Pagos | Sandbox-only (recarga y retiro directo sin pasarela real) |
 | Fuente | Google Fonts — Inter |
 | Deploy frontend | Vercel |
 | Deploy backend | Supabase Cloud |
@@ -66,7 +66,7 @@ uniride/
 │           ├── wallet/        # Billetera y recargas
 │           └── my_rides/      # Mis reservas (pasajero) + Mis turnos (conductor)
 └── supabase/
-    ├── migrations/            # 15 migraciones en orden
+    ├── migrations/            # 22 migraciones en orden
     └── functions/
         ├── create-topup-intent/        # Crea intención de recarga (provider-aware)
         ├── mercadopago-webhook/        # Webhook MP
@@ -120,7 +120,7 @@ flutter build web --release \
 
 ## Base de datos
 
-15 migraciones en `supabase/migrations/`:
+22 migraciones en `supabase/migrations/`:
 
 | # | Archivo | Contenido |
 |---|---|---|
@@ -140,6 +140,13 @@ flutter build web --release \
 | 13 | `_launch_pricing_stripe_ready.sql` | Comisión fija CLP 190 + topup fee-aware + Stripe-ready |
 | 14 | `_dispatch_hardening.sql` | Anti-bypass RLS + máquina de estado despacho + RPCs conductor/pasajero |
 | 15 | `_wallet_reconciliation_adjustment.sql` | Ajuste conciliación wallet/ledger para delta usuarios en cero |
+| 16 | `_reviews_favorites.sql` | Sistema de reseñas y favoritos |
+| 17 | `_strikes_reconciliation_and_guardrails.sql` | Strikes, conciliación y guardrails |
+| 18 | `_chile_local_ride_times.sql` | Horarios locales Chile para rides |
+| 19 | `_pricing_and_double_booking_guard.sql` | Pricing 2000 + guard contra doble reserva |
+| 20 | `_auto_expire_stale_bookings.sql` | Expiración automática de bookings |
+| 21 | `_complete_ride_manual.sql` | Finalizar viaje manual (conductor) |
+| 22 | `_hardening_close_gaps.sql` | Sandbox RPCs, delete account, fix complete_ride_manual |
 
 Para aplicar:
 ```bash
@@ -158,7 +165,8 @@ supabase db push
 - Universidades: UDD, U. Andes, PUC, UAI, UNAB
 - Retiro mínimo: **$20.000 CLP** (procesado manualmente, quincenal)
 - Comisión de plataforma fija: **$190 CLP por asiento**
-- Recargas billetera: **fee 1%** (ej. pides 10.000 -> pagas 10.100 -> wallet +10.000)
+- Recargas billetera: **modo sandbox** (directo a billetera, sin pasarela externa)
+- Retiro: **modo sandbox** (solicitud directa, sin pasarela externa)
 - Los fondos del pasajero quedan **retenidos** al reservar y se **liberan al conductor** cuando conductor finaliza viaje (flujo de despacho)
 - Estados de despacho de reserva: `reserved`, `accepted`, `driver_arriving`, `driver_arrived`, `passenger_boarded`, `in_progress`, `completed`, `cancelled`, `no_show`
 

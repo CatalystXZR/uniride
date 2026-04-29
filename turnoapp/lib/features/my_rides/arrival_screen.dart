@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app/theme.dart';
-
 class ArrivalScreen extends StatelessWidget {
   const ArrivalScreen({super.key});
 
@@ -52,7 +50,7 @@ class ArrivalScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.go('/my-rides'),
+                  onPressed: () => context.go('/home'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF178E68),
                     foregroundColor: Colors.white,

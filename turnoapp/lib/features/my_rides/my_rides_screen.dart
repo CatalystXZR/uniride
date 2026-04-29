@@ -45,6 +45,7 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
   bool _busy = false;
   String? _busyMessage;
   Set<String> _favoriteDriverIds = <String>{};
+  bool _navigatedToArrival = false;
 
   Future<void> _runBusy(
     String message,
@@ -98,6 +99,9 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
         if (!mounted) return;
         setState(() => _favoriteDriverIds = <String>{});
       }
+
+      if (!mounted) return;
+      _checkArrivalOnLoad();
     } catch (e) {
       if (!mounted) return;
       AppSnackbar.show(
@@ -106,6 +110,19 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
             fallback: 'No pudimos cargar tus reservas.'),
         isError: true,
       );
+    }
+  }
+
+  void _checkArrivalOnLoad() {
+    if (_navigatedToArrival) return;
+    final state = ref.read(myRidesProvider);
+    final hasCompletedTrip = state.bookings.any(
+      (b) =>
+          b.isCompleted && b.dispatchStatus == BookingDispatchStatus.completed,
+    );
+    if (hasCompletedTrip) {
+      _navigatedToArrival = true;
+      context.go('/arrival');
     }
   }
 

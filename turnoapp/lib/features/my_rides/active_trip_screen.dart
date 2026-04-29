@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../core/constants.dart';
@@ -28,6 +31,8 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
   bool _busy = false;
   String? _busyMessage;
   bool _isFavoriteDriver = false;
+  Timer? _pollTimer;
+  bool _navigatedToArrival = false;
 
   Future<void> _runBusy(
     String message,
@@ -52,6 +57,18 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
     }
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
   Booking? _bookingFromState() {
     final state = ref.watch(myRidesProvider);
     try {
@@ -61,19 +78,45 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
     }
   }
 
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _refresh();
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted) return;
+      _refresh();
+    });
+  }
+
+  Future<void> _checkArrival(Booking booking) async {
+    if (_navigatedToArrival) return;
+    if (booking.isCompleted &&
+        booking.dispatchStatus == BookingDispatchStatus.completed) {
+      _navigatedToArrival = true;
+      _pollTimer?.cancel();
+      if (!mounted) return;
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      context.go('/arrival');
+    }
+  }
+
   Future<void> _refresh() async {
     try {
       await ref.read(myRidesProvider.notifier).load();
       final booking = _bookingFromState();
-      if (booking?.driverId != null) {
-        try {
-          final isFav = await _favoritesService.isFavorite(booking!.driverId!);
-          if (!mounted) return;
-          setState(() => _isFavoriteDriver = isFav);
-        } catch (_) {
-          if (!mounted) return;
-          setState(() => _isFavoriteDriver = false);
+      if (booking != null) {
+        if (booking.driverId != null) {
+          try {
+            final isFav = await _favoritesService.isFavorite(booking.driverId!);
+            if (!mounted) return;
+            setState(() => _isFavoriteDriver = isFav);
+          } catch (_) {
+            if (!mounted) return;
+            setState(() => _isFavoriteDriver = false);
+          }
         }
+        if (!mounted) return;
+        _checkArrival(booking);
       }
     } catch (e) {
       if (!mounted) return;
