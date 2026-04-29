@@ -141,12 +141,6 @@ class _BookingScreenState extends State<BookingScreen> {
   Future<void> _confirmBooking() async {
     if (_ride == null) return;
 
-    print('=== BOOKING DEBUG ===');
-    print('rideId: ${widget.rideId}');
-    print('wallet: ${_wallet?.balanceAvailable}');
-    print('price: ${_ride!.seatPrice}');
-    print('===================');
-
     final balance = _wallet?.balanceAvailable ?? 0;
     final price = _ride!.seatPrice;
 
@@ -188,8 +182,6 @@ class _BookingScreenState extends State<BookingScreen> {
     if (confirmed != true || !mounted) return;
 
     setState(() => _booking = true);
-    print('=== RESERVA INICIANDO ===');
-    print('RideID: ${widget.rideId}');
     try {
       await _bookingService.createBooking(widget.rideId);
       if (mounted) {
@@ -198,16 +190,13 @@ class _BookingScreenState extends State<BookingScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Error de Reserva'),
-            content: Text('ERROR: ${e.toString()}'),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(ctx), child: const Text('OK'))
-            ],
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos procesar tu reserva. Intenta nuevamente.',
           ),
+          isError: true,
         );
       }
     } finally {

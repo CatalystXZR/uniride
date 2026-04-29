@@ -49,7 +49,7 @@ class BookingService {
 
     if (error is PostgrestException) {
       final details = error.details as String?;
-      final hint = error.hint as String?;
+      final hint = error.hint;
       if (details != null && details.isNotEmpty) return details;
       if (hint != null && hint.isNotEmpty) return hint;
     }
@@ -58,12 +58,9 @@ class BookingService {
   }
 
   Future<String> createBooking(String rideId) async {
-    print('DEBUG createBooking called with rideId: $rideId');
-
     try {
       final uuidValid = _isValidUuid(rideId);
       if (!uuidValid) {
-        print('DEBUG Invalid UUID format: $rideId');
         throw Exception('ID de ride invalido');
       }
 
@@ -71,14 +68,10 @@ class BookingService {
         'p_ride_id': rideId,
       });
 
-      print('DEBUG createBooking result: $result');
       return result as String;
     } on PostgrestException catch (e) {
-      print(
-          'DEBUG PostgrestException: ${e.message}, code: ${e.code}, details: ${e.details}');
       throw Exception(_mapPostgresError(e));
     } catch (e) {
-      print('DEBUG Generic error: $e');
       throw Exception(_mapPostgresError(e));
     }
   }
