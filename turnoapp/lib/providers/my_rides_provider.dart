@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/booking.dart';
@@ -31,16 +33,53 @@ class MyRidesNotifier extends StateNotifier<MyRidesState> {
           );
     });
     load();
+    _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
   }
 
   final Ref _ref;
+  Timer? _pollTimer;
+
+  static const _pollInterval = Duration(seconds: 5);
+
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
 
   Future<void> load() async {
+    if (_loading) return;
+    _loading = true;
     state = state.copyWith(loading: true);
-    final service = _ref.read(bookingServiceProvider);
-    final rows = await service.getMyBookings();
-    await BookingNotificationService.instance.syncPassengerBookings(rows);
-    state = state.copyWith(bookings: rows, loading: false);
+    try {
+      final service = _ref.read(bookingServiceProvider);
+      final rows = await service.getMyBookings();
+      await BookingNotificationService.instance.syncPassengerBookings(rows);
+      if (!mounted) return;
+      state = state.copyWith(bookings: rows, loading: false);
+    } finally {
+      _loading = false;
+    }
+  }
+
+  Future<void> _poll() async {
+    if (_loading) return;
+    _loading = true;
+    try {
+      final service = _ref.read(bookingServiceProvider);
+      final rows = await service.getMyBookings();
+      await BookingNotificationService.instance.syncPassengerBookings(rows);
+      if (!mounted) return;
+      state = state.copyWith(bookings: rows, loading: false);
+    } catch (_) {
+      // silent on poll errors
+      if (!mounted) return;
+      state = state.copyWith(loading: false);
+    } finally {
+      _loading = false;
+    }
   }
 
   Future<void> confirmBoarding(String bookingId) async {
