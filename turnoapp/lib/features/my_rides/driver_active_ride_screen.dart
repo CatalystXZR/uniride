@@ -13,8 +13,10 @@ import '../../models/enums.dart';
 import '../../models/ride.dart';
 import '../../providers/driver_rides_provider.dart';
 import '../../services/favorites_service.dart';
+import '../../services/review_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
 import '../../shared/widgets/loading_overlay.dart';
+import '../../shared/widgets/review_dialog.dart';
 
 class DriverActiveRideScreen extends ConsumerStatefulWidget {
   final String rideId;
@@ -29,6 +31,7 @@ class DriverActiveRideScreen extends ConsumerStatefulWidget {
 class _DriverActiveRideScreenState
     extends ConsumerState<DriverActiveRideScreen> {
   final _favoritesService = FavoritesService();
+  final _reviewService = ReviewService();
   bool _busy = false;
   String? _busyMessage;
   Set<String> _favoritePassengerIds = <String>{};
@@ -291,6 +294,81 @@ class _DriverActiveRideScreenState
     });
   }
 
+  Future<void> _reviewPassenger(Booking booking) async {
+    await _runBusy('Publicando resena...', () async {
+      try {
+        final already = await _reviewService.hasReviewForBooking(booking.id);
+        if (already) {
+          if (!mounted) return;
+          AppSnackbar.show(context, 'Ya enviaste una resena para este viaje.');
+          return;
+        }
+        if (!mounted) return;
+        final result = await showDialog<Map<String, dynamic>>(
+          context: context,
+          builder: (_) => const ReviewDialog(
+            title: 'Calificar pasajero',
+            subtitle:
+                'Tu referencia sera publica para ayudar a otros conductores.',
+            confirmLabel: 'Publicar resena',
+          ),
+        );
+        if (result == null) return;
+        await _reviewService.submitReview(
+          bookingId: booking.id,
+          stars: (result['stars'] as int?) ?? 5,
+          comment: (result['comment'] as String?)?.trim(),
+        );
+        await _refresh();
+        if (!mounted) return;
+        AppSnackbar.show(context, 'Resena publicada correctamente.');
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos publicar la resena.',
+          ),
+          isError: true,
+        );
+      }
+    });
+  }
+
+  Future<void> _toggleFavoritePassenger(Booking booking) async {
+    await _runBusy('Actualizando favoritos...', () async {
+      try {
+        final isFav =
+            await _favoritesService.toggleFavorite(booking.passengerId);
+        if (!mounted) return;
+        setState(() {
+          if (isFav) {
+            _favoritePassengerIds.add(booking.passengerId);
+          } else {
+            _favoritePassengerIds.remove(booking.passengerId);
+          }
+        });
+        AppSnackbar.show(
+          context,
+          isFav
+              ? 'Pasajero agregado a favoritos.'
+              : 'Pasajero eliminado de favoritos.',
+        );
+      } catch (e) {
+        if (!mounted) return;
+        AppSnackbar.show(
+          context,
+          AppErrorMapper.toMessage(
+            e,
+            fallback: 'No pudimos actualizar favoritos.',
+          ),
+          isError: true,
+        );
+      }
+    });
+  }
+
   Future<void> _completeRide() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -503,6 +581,9 @@ class _DriverActiveRideScreenState
                     onMarkArrived: () => _markArrived(booking),
                     onStartTrip: () => _startTrip(booking),
                     onCompleteTrip: () => _completeTrip(booking),
+                    onReviewPassenger: () => _reviewPassenger(booking),
+                    onFavoritePassenger: () =>
+                        _toggleFavoritePassenger(booking),
                     isFavorite:
                         _favoritePassengerIds.contains(booking.passengerId),
                   ),
@@ -880,6 +961,8 @@ class _PassengerCard extends StatelessWidget {
   final VoidCallback? onMarkArrived;
   final VoidCallback? onStartTrip;
   final VoidCallback? onCompleteTrip;
+  final VoidCallback? onReviewPassenger;
+  final VoidCallback? onFavoritePassenger;
   final bool isFavorite;
 
   const _PassengerCard({
@@ -890,6 +973,8 @@ class _PassengerCard extends StatelessWidget {
     this.onMarkArrived,
     this.onStartTrip,
     this.onCompleteTrip,
+    this.onReviewPassenger,
+    this.onFavoritePassenger,
     required this.isFavorite,
   });
 
@@ -1083,6 +1168,46 @@ class _PassengerCard extends StatelessWidget {
               foregroundColor: Colors.white,
             ),
             label: const Text('Finalizar viaje'),
+          ),
+        ),
+      );
+    }
+
+    if (booking.isCompleted && onReviewPassenger != null) {
+      actions.add(
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: onReviewPassenger,
+            icon: const Icon(Icons.star_outline, size: 18),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+            ),
+            label: const Text('Calificar pasajero'),
+          ),
+        ),
+      );
+    }
+
+    if (onFavoritePassenger != null) {
+      actions.add(
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: onFavoritePassenger,
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  isFavorite ? const Color(0xFFFF5A7A) : Colors.white,
+              foregroundColor: isFavorite ? Colors.white : AppTheme.primary,
+            ),
+            icon: Icon(
+              isFavorite ? Icons.favorite : Icons.favorite_outline,
+              size: 18,
+            ),
+            label: Text(
+              isFavorite ? 'Pasajero favorito' : 'Agregar pasajero a favoritos',
+            ),
           ),
         ),
       );
