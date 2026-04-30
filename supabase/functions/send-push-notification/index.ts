@@ -24,7 +24,31 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { create, getNumericDate } from "https://deno.land/x/djwt@2.9.1/mod.ts";
+
+function base64url(buf: ArrayBuffer): string {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+async function createES256Jwt(
+  header: { alg: string; kid: string },
+  payload: Record<string, unknown>,
+  privateKey: CryptoKey,
+): Promise<string> {
+  const enc = new TextEncoder();
+  const headerB64 = base64url(enc.encode(JSON.stringify(header)));
+  const payloadB64 = base64url(enc.encode(JSON.stringify(payload)));
+  const signingInput = `${headerB64}.${payloadB64}`;
+  const sig = await crypto.subtle.sign(
+    { name: "ECDSA", hash: "SHA-256" },
+    privateKey,
+    enc.encode(signingInput),
+  );
+  const sigB64 = base64url(sig);
+  return `${signingInput}.${sigB64}`;
+}
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -83,7 +107,7 @@ async function getApnsJwt(): Promise<string> {
   );
 
   const now = Math.floor(Date.now() / 1000);
-  const jwt = await create(
+  const jwt = await createES256Jwt(
     { alg: "ES256", kid: APNS_KEY_ID },
     {
       iss: APNS_TEAM_ID,
