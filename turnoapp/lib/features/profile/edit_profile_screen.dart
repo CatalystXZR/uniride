@@ -28,7 +28,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _vehicleBrandController = TextEditingController();
   final _vehicleVersionController = TextEditingController();
   final _vehicleDoorsController = TextEditingController();
-  final _vehicleBodyTypeController = TextEditingController();
   final _vehiclePlateController = TextEditingController();
   final _vehicleColorController = TextEditingController();
   final _emergencyContactController = TextEditingController();
@@ -56,7 +55,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _vehicleBrandController.dispose();
     _vehicleVersionController.dispose();
     _vehicleDoorsController.dispose();
-    _vehicleBodyTypeController.dispose();
     _vehiclePlateController.dispose();
     _vehicleColorController.dispose();
     _emergencyContactController.dispose();
@@ -79,7 +77,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _vehicleVersionController.text = profile.vehicleVersion ?? '';
       _vehicleDoorsController.text =
           profile.vehicleDoors != null ? '${profile.vehicleDoors}' : '';
-      _vehicleBodyTypeController.text = profile.vehicleBodyType ?? '';
       _vehiclePlateController.text = profile.vehiclePlate ?? '';
       _vehicleColorController.text = profile.vehicleColor ?? '';
       _emergencyContactController.text = profile.emergencyContact ?? '';
@@ -121,7 +118,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         vehicleModel: _nullIfEmpty(_vehicleModelController.text),
         vehicleVersion: _nullIfEmpty(_vehicleVersionController.text),
         vehicleDoors: int.tryParse(_vehicleDoorsController.text.trim()),
-        vehicleBodyType: _nullIfEmpty(_vehicleBodyTypeController.text),
         vehiclePlate: _normalizePlate(_vehiclePlateController.text),
         vehicleColor: _nullIfEmpty(_vehicleColorController.text),
         emergencyContact: _nullIfEmpty(_emergencyContactController.text),
@@ -418,15 +414,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   return 'Entre 2 y 6 puertas';
                                 return null;
                               },
-                            ),
-                            const SizedBox(height: 12),
-                            TextFormField(
-                              controller: _vehicleBodyTypeController,
-                              textCapitalization: TextCapitalization.words,
-                              decoration: const InputDecoration(
-                                labelText: 'Carroceria (opcional)',
-                                prefixIcon: Icon(Icons.view_in_ar_outlined),
-                              ),
                             ),
                             const SizedBox(height: 12),
                             TextFormField(

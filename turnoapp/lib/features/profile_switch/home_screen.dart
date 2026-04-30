@@ -173,7 +173,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         (profile.vehicleVersion?.trim().isNotEmpty ?? false) &&
         ((profile.vehicleDoors ?? 0) >= 2) &&
         ((profile.vehicleDoors ?? 0) <= 6) &&
-        (profile.vehicleBodyType?.trim().isNotEmpty ?? false) &&
         (profile.vehiclePlate?.trim().isNotEmpty ?? false);
   }
 
@@ -189,8 +188,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final doorsController = TextEditingController(
       text: profile.vehicleDoors != null ? '${profile.vehicleDoors}' : '',
     );
-    final bodyController =
-        TextEditingController(text: profile.vehicleBodyType ?? '');
     final plateController =
         TextEditingController(text: profile.vehiclePlate ?? '');
     var hasLicense = profile.hasValidLicense;
@@ -275,15 +272,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                       const SizedBox(height: 10),
                       TextFormField(
-                        controller: bodyController,
-                        decoration:
-                            const InputDecoration(labelText: 'Carroceria'),
-                        validator: (v) => (v?.trim().isNotEmpty ?? false)
-                            ? null
-                            : 'Carroceria requerida',
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
                         controller: plateController,
                         textCapitalization: TextCapitalization.characters,
                         decoration: const InputDecoration(labelText: 'Patente'),
@@ -333,8 +321,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                             versionController.text.trim(),
                                         vehicleDoors: int.parse(
                                             doorsController.text.trim()),
-                                        vehicleBodyType:
-                                            bodyController.text.trim(),
                                         vehiclePlate: plateController.text
                                             .trim()
                                             .toUpperCase()
@@ -387,7 +373,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     modelController.dispose();
     versionController.dispose();
     doorsController.dispose();
-    bodyController.dispose();
     plateController.dispose();
 
     return result == true;

@@ -63,15 +63,14 @@ class AppConstants {
     {'code': 'UNAB', 'name': 'Universidad Andres Bello'},
   ];
 
-  static const Set<String> premiumUniversityCodes = {'PUC', 'UCH'};
+  static const Set<String> premiumUniversityCodes = <String>{};
 
   static bool isPremiumUniversityCode(String? code) {
-    if (code == null) return false;
-    return premiumUniversityCodes.contains(code.toUpperCase());
+    return false;
   }
 
   static int seatPriceForUniversityCode(String? code) {
-    return isPremiumUniversityCode(code) ? seatPricePremiumCLP : seatPriceCLP;
+    return seatPriceCLP;
   }
 
   static int platformFeeForAmount(int amount, {required bool isRadial}) {
@@ -125,137 +124,150 @@ class AppConstants {
   ];
 
   static const List<Map<String, String>> campusesWithIds = [
+    // UDD
     {
       'id': '22222222-0001-0000-0000-000000000001',
       'university_id': '11111111-0000-0000-0000-000000000001',
       'university_name': 'Universidad del Desarrollo',
-      'name': 'Campus Concepcion',
-      'commune': 'Concepcion',
+      'name': 'Campus Rector Ernesto Silva Bafalluy',
+      'commune': 'Santiago',
     },
     {
       'id': '22222222-0001-0000-0000-000000000002',
       'university_id': '11111111-0000-0000-0000-000000000001',
       'university_name': 'Universidad del Desarrollo',
-      'name': 'Campus Las Condes',
-      'commune': 'Las Condes',
+      'name': 'Clinica Universidad del Desarrollo',
+      'commune': 'Santiago',
     },
-    {
-      'id': '22222222-0001-0000-0000-000000000003',
-      'university_id': '11111111-0000-0000-0000-000000000001',
-      'university_name': 'Universidad del Desarrollo',
-      'name': 'Campus Vina del Mar',
-      'commune': 'Vina del Mar',
-    },
+    // UANDES
     {
       'id': '22222222-0002-0000-0000-000000000001',
       'university_id': '11111111-0000-0000-0000-000000000002',
       'university_name': 'Universidad de los Andes',
-      'name': 'Campus San Carlos de Apoquindo',
+      'name': 'Campus Universitario UANDES',
       'commune': 'Las Condes',
     },
+    // PUC
     {
       'id': '22222222-0003-0000-0000-000000000001',
+      'university_id': '11111111-0000-0000-0000-000000000003',
+      'university_name': 'Pontificia Universidad Catolica de Chile',
+      'name': 'Casa Central PUC',
+      'commune': 'Santiago',
+    },
+    {
+      'id': '22222222-0003-0000-0000-000000000002',
       'university_id': '11111111-0000-0000-0000-000000000003',
       'university_name': 'Pontificia Universidad Catolica de Chile',
       'name': 'Campus San Joaquin',
       'commune': 'San Joaquin',
     },
     {
-      'id': '22222222-0003-0000-0000-000000000002',
-      'university_id': '11111111-0000-0000-0000-000000000003',
-      'university_name': 'Pontificia Universidad Catolica de Chile',
-      'name': 'Campus Casa Central',
-      'commune': 'Santiago',
-    },
-    {
       'id': '22222222-0003-0000-0000-000000000003',
-      'university_id': '11111111-0000-0000-0000-000000000003',
-      'university_name': 'Pontificia Universidad Catolica de Chile',
-      'name': 'Campus Lo Contador',
-      'commune': 'Providencia',
-    },
-    {
-      'id': '22222222-0003-0000-0000-000000000004',
       'university_id': '11111111-0000-0000-0000-000000000003',
       'university_name': 'Pontificia Universidad Catolica de Chile',
       'name': 'Campus Oriente',
       'commune': 'Macul',
     },
     {
-      'id': '22222222-0003-0000-0000-000000000005',
+      'id': '22222222-0003-0000-0000-000000000004',
       'university_id': '11111111-0000-0000-0000-000000000003',
       'university_name': 'Pontificia Universidad Catolica de Chile',
-      'name': 'Campus Villarrica',
-      'commune': 'Villarrica',
+      'name': 'Campus Lo Contador',
+      'commune': 'Providencia',
     },
+    // UCH
     {
       'id': '22222222-0004-0000-0000-000000000001',
-      'university_id': '11111111-0000-0000-0000-000000000006',
-      'university_name': 'Universidad Adolfo Ibanez',
-      'name': 'Campus Penalolen',
-      'commune': 'Penalolen',
-    },
-    {
-      'id': '22222222-0004-0000-0000-000000000002',
-      'university_id': '11111111-0000-0000-0000-000000000006',
-      'university_name': 'Universidad Adolfo Ibanez',
-      'name': 'Campus Vitacura',
-      'commune': 'Vitacura',
-    },
-    {
-      'id': '22222222-0004-0000-0000-000000000003',
-      'university_id': '11111111-0000-0000-0000-000000000006',
-      'university_name': 'Universidad Adolfo Ibanez',
-      'name': 'Campus Vina del Mar',
-      'commune': 'Vina del Mar',
-    },
-    {
-      'id': '22222222-0005-0000-0000-000000000001',
-      'university_id': '11111111-0000-0000-0000-000000000005',
-      'university_name': 'Universidad Andres Bello',
-      'name': 'Campus Republica',
+      'university_id': '11111111-0000-0000-0000-000000000004',
+      'university_name': 'Universidad de Chile',
+      'name': 'Campus Andres Bello',
       'commune': 'Santiago',
     },
     {
-      'id': '22222222-0005-0000-0000-000000000002',
-      'university_id': '11111111-0000-0000-0000-000000000005',
-      'university_name': 'Universidad Andres Bello',
-      'name': 'Campus Casanova',
-      'commune': 'Las Condes',
-    },
-    {
-      'id': '22222222-0005-0000-0000-000000000003',
-      'university_id': '11111111-0000-0000-0000-000000000005',
-      'university_name': 'Universidad Andres Bello',
-      'name': 'Campus Concepcion',
-      'commune': 'Concepcion',
-    },
-    {
-      'id': '22222222-0005-0000-0000-000000000004',
-      'university_id': '11111111-0000-0000-0000-000000000005',
-      'university_name': 'Universidad Andres Bello',
-      'name': 'Campus Vina del Mar',
-      'commune': 'Vina del Mar',
-    },
-    {
-      'id': '22222222-0006-0000-0000-000000000001',
+      'id': '22222222-0004-0000-0000-000000000002',
       'university_id': '11111111-0000-0000-0000-000000000004',
       'university_name': 'Universidad de Chile',
       'name': 'Campus Beauchef',
       'commune': 'Santiago',
     },
     {
-      'id': '22222222-0006-0000-0000-000000000002',
+      'id': '22222222-0004-0000-0000-000000000003',
       'university_id': '11111111-0000-0000-0000-000000000004',
       'university_name': 'Universidad de Chile',
       'name': 'Campus Juan Gomez Millas',
       'commune': 'Nunoa',
     },
     {
-      'id': '22222222-0006-0000-0000-000000000003',
+      'id': '22222222-0004-0000-0000-000000000004',
       'university_id': '11111111-0000-0000-0000-000000000004',
       'university_name': 'Universidad de Chile',
-      'name': 'Casa Central',
+      'name': 'Campus Dra. Eloisa Diaz',
+      'commune': 'Independencia',
+    },
+    {
+      'id': '22222222-0004-0000-0000-000000000005',
+      'university_id': '11111111-0000-0000-0000-000000000004',
+      'university_name': 'Universidad de Chile',
+      'name': 'Campus Sur (Antumapu)',
+      'commune': 'La Pintana',
+    },
+    // UAI
+    {
+      'id': '22222222-0005-0000-0000-000000000001',
+      'university_id': '11111111-0000-0000-0000-000000000006',
+      'university_name': 'Universidad Adolfo Ibanez',
+      'name': 'Campus Penalolen',
+      'commune': 'Penalolen',
+    },
+    {
+      'id': '22222222-0005-0000-0000-000000000002',
+      'university_id': '11111111-0000-0000-0000-000000000006',
+      'university_name': 'Universidad Adolfo Ibanez',
+      'name': 'Sede Presidente Errazuriz',
+      'commune': 'Santiago',
+    },
+    // UNAB
+    {
+      'id': '22222222-0006-0000-0000-000000000001',
+      'university_id': '11111111-0000-0000-0000-000000000005',
+      'university_name': 'Universidad Andres Bello',
+      'name': 'Campus Republica',
+      'commune': 'Santiago',
+    },
+    {
+      'id': '22222222-0006-0000-0000-000000000002',
+      'university_id': '11111111-0000-0000-0000-000000000005',
+      'university_name': 'Universidad Andres Bello',
+      'name': 'Campus Casona de Las Condes',
+      'commune': 'Las Condes',
+    },
+    {
+      'id': '22222222-0006-0000-0000-000000000003',
+      'university_id': '11111111-0000-0000-0000-000000000005',
+      'university_name': 'Universidad Andres Bello',
+      'name': 'Campus Bellavista',
+      'commune': 'Providencia',
+    },
+    {
+      'id': '22222222-0006-0000-0000-000000000004',
+      'university_id': '11111111-0000-0000-0000-000000000005',
+      'university_name': 'Universidad Andres Bello',
+      'name': 'Campus Los Leones',
+      'commune': 'Providencia',
+    },
+    {
+      'id': '22222222-0006-0000-0000-000000000005',
+      'university_id': '11111111-0000-0000-0000-000000000005',
+      'university_name': 'Universidad Andres Bello',
+      'name': 'Campus Antonio Varas',
+      'commune': 'Providencia',
+    },
+    {
+      'id': '22222222-0006-0000-0000-000000000006',
+      'university_id': '11111111-0000-0000-0000-000000000005',
+      'university_name': 'Universidad Andres Bello',
+      'name': 'Campus Creativo',
       'commune': 'Santiago',
     },
   ];

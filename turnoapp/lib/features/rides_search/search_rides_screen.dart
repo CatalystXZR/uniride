@@ -143,10 +143,14 @@ class _SearchRidesScreenState extends ConsumerState<SearchRidesScreen>
                       _FilterChipDropdown<String>(
                         label: 'Comuna',
                         value: state.selectedCommune,
-                        items: AppConstants.allowedCommunes
-                            .map((c) =>
-                                DropdownMenuItem(value: c, child: Text(c)))
-                            .toList(),
+                        items: [
+                          const DropdownMenuItem(
+                              value: null, child: Text('Sin filtro')),
+                          ...AppConstants.allowedCommunes
+                              .map((c) =>
+                                  DropdownMenuItem(value: c, child: Text(c)))
+                              .toList(),
+                        ],
                         onChanged: (v) async {
                           notifier.setCommune(v);
                           await _search();
@@ -155,10 +159,12 @@ class _SearchRidesScreenState extends ConsumerState<SearchRidesScreen>
                       _FilterChipDropdown<String>(
                         label: 'Direccion',
                         value: state.selectedDirection,
-                        items: const [
-                          DropdownMenuItem(
+                        items: [
+                          const DropdownMenuItem(
+                              value: null, child: Text('Sin filtro')),
+                          const DropdownMenuItem(
                               value: 'to_campus', child: Text('Hacia campus')),
-                          DropdownMenuItem(
+                          const DropdownMenuItem(
                             value: 'from_campus',
                             child: Text('Desde campus'),
                           ),
@@ -183,17 +189,21 @@ class _SearchRidesScreenState extends ConsumerState<SearchRidesScreen>
                                   ? 'Cargando campus...'
                                   : 'Campus',
                               value: state.selectedCampusId,
-                              items: state.campuses
-                                  .map(
-                                    (c) => DropdownMenuItem(
-                                      value: c['id'] as String,
-                                      child: Text(
-                                        '${c['name']} · ${(c['universities'] as Map?)?['name'] ?? ''}',
-                                        overflow: TextOverflow.ellipsis,
+                              items: [
+                                const DropdownMenuItem(
+                                    value: null, child: Text('Sin filtro')),
+                                ...state.campuses
+                                    .map(
+                                      (c) => DropdownMenuItem(
+                                        value: c['id'] as String,
+                                        child: Text(
+                                          '${c['name']} · ${(c['universities'] as Map?)?['name'] ?? ''}',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                    ),
-                                  )
-                                  .toList(),
+                                    )
+                                    .toList(),
+                              ],
                               onChanged: state.loadingCampuses
                                   ? (_) {}
                                   : (v) async {

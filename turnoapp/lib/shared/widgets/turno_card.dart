@@ -179,13 +179,13 @@ class TurnoCard extends StatelessWidget {
                   ),
                 ),
               ],
-              if (platformFee != null && driverNetAmount != null) ...[
-                const SizedBox(height: 4),
+              if (platformFee != null && platformFee! > 0) ...[
+                const SizedBox(height: 2),
                 Text(
-                  'Comision: \$$platformFee · Neto conductor: \$$driverNetAmount${isRadial == true ? ' · Radial' : ''}',
+                  'incluye \$' '$platformFee de servicio',
                   style: const TextStyle(
-                    color: AppTheme.subtle,
-                    fontSize: 12,
+                    color: Color(0xFFBDC3C8),
+                    fontSize: 10,
                   ),
                 ),
               ],

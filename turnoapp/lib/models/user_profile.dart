@@ -38,7 +38,6 @@ class UserProfile {
   final String? vehicleBrand;
   final String? vehicleVersion;
   final int? vehicleDoors;
-  final String? vehicleBodyType;
   final String? vehiclePlate;
   final String? vehicleColor;
   final DateTime createdAt;
@@ -67,7 +66,6 @@ class UserProfile {
     this.vehicleBrand,
     this.vehicleVersion,
     this.vehicleDoors,
-    this.vehicleBodyType,
     this.vehiclePlate,
     this.vehicleColor,
     required this.createdAt,
@@ -107,7 +105,6 @@ class UserProfile {
       vehicleBrand: json['vehicle_brand'] as String?,
       vehicleVersion: json['vehicle_version'] as String?,
       vehicleDoors: json['vehicle_doors'] as int?,
-      vehicleBodyType: json['vehicle_body_type'] as String?,
       vehiclePlate: json['vehicle_plate'] as String?,
       vehicleColor: json['vehicle_color'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -138,7 +135,6 @@ class UserProfile {
         'vehicle_brand': vehicleBrand,
         'vehicle_version': vehicleVersion,
         'vehicle_doors': vehicleDoors,
-        'vehicle_body_type': vehicleBodyType,
         'vehicle_plate': vehiclePlate,
         'vehicle_color': vehicleColor,
         'created_at': createdAt.toIso8601String(),
@@ -167,7 +163,6 @@ class UserProfile {
     String? vehicleBrand,
     String? vehicleVersion,
     int? vehicleDoors,
-    String? vehicleBodyType,
     String? vehiclePlate,
     String? vehicleColor,
   }) {
@@ -196,7 +191,6 @@ class UserProfile {
       vehicleBrand: vehicleBrand ?? this.vehicleBrand,
       vehicleVersion: vehicleVersion ?? this.vehicleVersion,
       vehicleDoors: vehicleDoors ?? this.vehicleDoors,
-      vehicleBodyType: vehicleBodyType ?? this.vehicleBodyType,
       vehiclePlate: vehiclePlate ?? this.vehiclePlate,
       vehicleColor: vehicleColor ?? this.vehicleColor,
       createdAt: createdAt,

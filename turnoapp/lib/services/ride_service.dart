@@ -45,6 +45,7 @@ class RideService {
     DateTime? date,
     int limit = 50,
   }) async {
+    final currentUserId = _client.auth.currentUser?.id;
     var query = _client
         .from('rides')
         .select('''
@@ -56,6 +57,10 @@ class RideService {
         .eq('status', 'active')
         .gt('seats_available', 0)
         .gt('departure_at', DateTime.now().toIso8601String());
+
+    if (currentUserId != null) {
+      query = query.neq('driver_id', currentUserId);
+    }
 
     if (campusId != null) query = query.eq('campus_id', campusId);
     if (originCommune != null)

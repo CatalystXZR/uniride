@@ -40,7 +40,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _vehicleModelController = TextEditingController();
   final _vehicleVersionController = TextEditingController();
   final _vehicleDoorsController = TextEditingController();
-  final _vehicleBodyTypeController = TextEditingController();
   final _vehiclePlateController = TextEditingController();
   bool _loading = false;
   bool _obscure = true;
@@ -105,7 +104,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _vehicleModelController.dispose();
     _vehicleVersionController.dispose();
     _vehicleDoorsController.dispose();
-    _vehicleBodyTypeController.dispose();
     _vehiclePlateController.dispose();
     super.dispose();
   }
@@ -131,8 +129,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         vehicleDoors: _registerAsDriver
             ? int.tryParse(_vehicleDoorsController.text.trim())
             : null,
-        vehicleBodyType:
-            _registerAsDriver ? _vehicleBodyTypeController.text.trim() : null,
         vehiclePlate:
             _registerAsDriver ? _vehiclePlateController.text.trim() : null,
       );
@@ -159,9 +155,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 : null,
             vehicleDoors: _registerAsDriver
                 ? int.tryParse(_vehicleDoorsController.text.trim())
-                : null,
-            vehicleBodyType: _registerAsDriver
-                ? _vehicleBodyTypeController.text.trim()
                 : null,
             vehiclePlate:
                 _registerAsDriver ? _vehiclePlateController.text.trim() : null,
@@ -460,20 +453,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           return 'Entre 2 y 6 puertas';
                                         return null;
                                       },
-                                    ),
-                                    const SizedBox(height: 10),
-                                    TextFormField(
-                                      controller: _vehicleBodyTypeController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Carroceria',
-                                        prefixIcon:
-                                            Icon(Icons.view_in_ar_outlined),
-                                      ),
-                                      validator: (v) => _registerAsDriver
-                                          ? ((v?.trim().isNotEmpty ?? false)
-                                              ? null
-                                              : 'Carroceria requerida')
-                                          : null,
                                     ),
                                     const SizedBox(height: 10),
                                     TextFormField(

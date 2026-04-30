@@ -40,7 +40,6 @@ class AuthService {
     String? vehicleModel,
     String? vehicleVersion,
     int? vehicleDoors,
-    String? vehicleBodyType,
     String? vehiclePlate,
   }) async {
     return _client.auth.signUp(
@@ -56,7 +55,6 @@ class AuthService {
         if (vehicleModel != null) 'vehicle_model': vehicleModel,
         if (vehicleVersion != null) 'vehicle_version': vehicleVersion,
         if (vehicleDoors != null) 'vehicle_doors': vehicleDoors,
-        if (vehicleBodyType != null) 'vehicle_body_type': vehicleBodyType,
         if (vehiclePlate != null)
           'vehicle_plate': vehiclePlate.toUpperCase().replaceAll(' ', ''),
       },

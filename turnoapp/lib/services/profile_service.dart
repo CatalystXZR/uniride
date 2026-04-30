@@ -34,7 +34,6 @@ class ProfileService {
     String? vehicleModel,
     String? vehicleVersion,
     int? vehicleDoors,
-    String? vehicleBodyType,
     String? vehiclePlate,
   }) async {
     await _client.from('users_profile').upsert({
@@ -53,7 +52,6 @@ class ProfileService {
       if (vehicleModel != null) 'vehicle_model': vehicleModel,
       if (vehicleVersion != null) 'vehicle_version': vehicleVersion,
       if (vehicleDoors != null) 'vehicle_doors': vehicleDoors,
-      if (vehicleBodyType != null) 'vehicle_body_type': vehicleBodyType,
       if (vehiclePlate != null)
         'vehicle_plate': vehiclePlate.toUpperCase().replaceAll(' ', ''),
     });
@@ -87,7 +85,6 @@ class ProfileService {
     String? vehicleBrand,
     String? vehicleVersion,
     int? vehicleDoors,
-    String? vehicleBodyType,
     String? vehiclePlate,
     String? vehicleColor,
     String? emergencyContact,
@@ -104,7 +101,6 @@ class ProfileService {
           'vehicle_model': vehicleModel,
           'vehicle_version': vehicleVersion,
           'vehicle_doors': vehicleDoors,
-          'vehicle_body_type': vehicleBodyType,
           'vehicle_plate': vehiclePlate,
           'vehicle_color': vehicleColor,
           'emergency_contact': emergencyContact,

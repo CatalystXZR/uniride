@@ -145,7 +145,7 @@ class AppErrorMapper {
     }
 
     if (text.contains('users_profile_driver_vehicle_required_ck')) {
-      return 'Para ser conductor debes ingresar marca, modelo, version, puertas, carroceria y patente.';
+      return 'Para ser conductor debes ingresar marca, modelo, version, puertas y patente.';
     }
 
     if (text.contains('minimum amount')) {
