@@ -1,1 +1,0 @@
- /home/catalystxzr/Escritorio/PERSONAL/uniride/turnoapp/build/b038aafba1b85be3a013c650fefbd857/dart_build_result.json:  /home/catalystxzr/Escritorio/PERSONAL/uniride/turnoapp/.dart_tool/package_config.json /home/catalystxzr/Escritorio/PERSONAL/uniride/turnoapp/pubspec.yaml /home/catalystxzr/flutter/bin/cache/dart-sdk/version

@@ -1,2 +1,12 @@
 !.vercel
 !/build
+/build/*
+!/build/web/
+*.dill.track.dill
+build/flutter_assets/
+build/native_assets/
+build/native_hooks/
+build/test_cache/
+build/unit_test_assets/
+build/b038aafba1b85be3a013c650fefbd857/
+build/*.cache.dill*
