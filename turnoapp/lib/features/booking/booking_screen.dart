@@ -19,7 +19,6 @@ import 'package:intl/intl.dart';
 import '../../app/theme.dart';
 import '../../core/constants.dart';
 import '../../core/error_mapper.dart';
-import '../../core/supabase_client.dart';
 import '../../models/enums.dart';
 import '../../models/ride.dart';
 import '../../models/user_profile.dart';
@@ -207,12 +206,12 @@ class _BookingScreenState extends State<BookingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final totalCharge = (_ride?.seatPrice ?? 0) + (_ride?.platformFee ?? 0);
-    final totalFmt = NumberFormat.currency(
+    final price = _ride?.seatPrice ?? 0;
+    final priceFmt = NumberFormat.currency(
       locale: 'es_CL',
       symbol: '\$',
       decimalDigits: 0,
-    ).format(totalCharge);
+    ).format(price);
 
     final balanceFmt = NumberFormat.currency(
       locale: 'es_CL',
@@ -220,12 +219,7 @@ class _BookingScreenState extends State<BookingScreen> {
       decimalDigits: 0,
     ).format(_wallet?.balanceAvailable ?? 0);
 
-    final currentUserId = SupabaseConfig.client.auth.currentUser?.id;
-    final isOwnRide = _ride != null && _ride!.driverId == currentUserId;
-    final canBook = !isOwnRide &&
-        (_ride?.isActive ?? false) &&
-        !(_ride?.isFull ?? true) &&
-        (_wallet?.balanceAvailable ?? 0) >= totalCharge;
+    final canBook = (_ride?.isActive ?? false) && !(_ride?.isFull ?? true);
 
     return LoadingOverlay(
       isLoading: _booking,
@@ -290,17 +284,30 @@ class _BookingScreenState extends State<BookingScreen> {
                                 ),
                                 const SizedBox(height: 12),
                                 _PriceRow(
-                                  label: 'Total a retener',
-                                  value: totalFmt,
-                                  bold: true,
+                                  label: 'Precio por asiento',
+                                  value: priceFmt,
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'incluye \$${_ride?.platformFee ?? 0} de servicio',
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Color(0xFFBDC3C8),
-                                  ),
+                                const Divider(),
+                                _PriceRow(
+                                  label: 'Comision pasajero (incluida)',
+                                  value: NumberFormat.currency(
+                                    locale: 'es_CL',
+                                    symbol: '\$',
+                                    decimalDigits: 0,
+                                  ).format(_ride?.platformFee ?? 0),
+                                ),
+                                _PriceRow(
+                                  label: 'Neto conductor (sin descuento extra)',
+                                  value: NumberFormat.currency(
+                                    locale: 'es_CL',
+                                    symbol: '\$',
+                                    decimalDigits: 0,
+                                  ).format(_ride?.driverNetAmount ?? price),
+                                ),
+                                _PriceRow(
+                                  label: 'Total a retener',
+                                  value: priceFmt,
+                                  bold: true,
                                 ),
                                 const SizedBox(height: 8),
                                 Container(
@@ -308,7 +315,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: (_wallet?.balanceAvailable ?? 0) >=
-                                            totalCharge
+                                            price
                                         ? const Color(0xFFE9F6EE)
                                         : const Color(0xFFFCEDEF),
                                     borderRadius: BorderRadius.circular(12),
@@ -317,7 +324,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                     'Tu saldo actual: $balanceFmt',
                                     style: TextStyle(
                                       color: (_wallet?.balanceAvailable ?? 0) >=
-                                              totalCharge
+                                              price
                                           ? const Color(0xFF1B734D)
                                           : AppTheme.danger,
                                       fontWeight: FontWeight.w700,
@@ -368,15 +375,6 @@ class _BookingScreenState extends State<BookingScreen> {
                       onPressed: canBook ? _confirmBooking : null,
                       child: const Text('Reservar asiento'),
                     ),
-                    if (isOwnRide)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Text(
-                          'Este es tu turno. No puedes reservarlo.',
-                          style:
-                              TextStyle(color: AppTheme.subtle, fontSize: 12),
-                        ),
-                      ),
                     if (_ride!.isFull)
                       const Padding(
                         padding: EdgeInsets.only(top: 8),

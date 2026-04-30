@@ -609,6 +609,14 @@ class _PublishRideScreenState extends State<PublishRideScreen> {
                                 color: AppTheme.subtle,
                               ),
                             ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'La comision se cobra al pasajero; el conductor no tiene cobro adicional.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.subtle,
+                              ),
+                            ),
                           ],
                         ),
                       ),
