@@ -69,8 +69,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
     super.dispose();
   }
 
-  Booking? _bookingFromState() {
-    final state = ref.watch(myRidesProvider);
+  Booking? _bookingFromState(MyRidesState state) {
     try {
       return state.bookings.firstWhere((b) => b.id == widget.bookingId);
     } catch (_) {
@@ -103,7 +102,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
   Future<void> _refresh() async {
     try {
       await ref.read(myRidesProvider.notifier).load();
-      final booking = _bookingFromState();
+      final booking = _bookingFromState(ref.read(myRidesProvider));
       if (booking != null) {
         if (booking.driverId != null) {
           try {
@@ -248,7 +247,8 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final booking = _bookingFromState();
+    final state = ref.watch(myRidesProvider);
+    final booking = _bookingFromState(state);
     if (booking == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Viaje activo')),
@@ -445,7 +445,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                                 decoration: BoxDecoration(
                                   color: step.done
                                       ? (step.highlight
-                                              ? const Color(0xFF178E68)
+                                              ? AppTheme.primary
                                               : const Color(0xFF178E68))
                                           .withValues(alpha: 0.12)
                                       : const Color(0xFF9AA8B5)
@@ -457,7 +457,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                                   size: 16,
                                   color: step.done
                                       ? (step.highlight
-                                          ? const Color(0xFF178E68)
+                                          ? AppTheme.primary
                                           : const Color(0xFF178E68))
                                       : const Color(0xFF9AA8B5),
                                 ),
@@ -531,7 +531,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (canConfirmBoarding)
+              if (canConfirmBoarding) ...[
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -544,7 +544,8 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                     label: const Text('ME SUBI AL AUTO'),
                   ),
                 ),
-              if (canConfirmBoarding) const SizedBox(height: 8),
+                const SizedBox(height: 8),
+              ],
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(

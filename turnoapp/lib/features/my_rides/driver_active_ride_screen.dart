@@ -15,6 +15,7 @@ import '../../providers/driver_rides_provider.dart';
 import '../../services/favorites_service.dart';
 import '../../services/review_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
+import '../../shared/widgets/booking_flow_buttons.dart';
 import '../../shared/widgets/loading_overlay.dart';
 import '../../shared/widgets/review_dialog.dart';
 
@@ -82,8 +83,7 @@ class _DriverActiveRideScreenState
     });
   }
 
-  Ride? _rideFromState() {
-    final state = ref.read(driverRidesProvider);
+  Ride? _rideFromState(DriverRidesState state) {
     try {
       return state.rides.firstWhere((r) => r.id == widget.rideId);
     } catch (_) {
@@ -91,8 +91,7 @@ class _DriverActiveRideScreenState
     }
   }
 
-  List<Booking> _bookingsForThisRide() {
-    final state = ref.read(driverRidesProvider);
+  List<Booking> _bookingsForThisRide(DriverRidesState state) {
     return state.bookings.where((b) => b.rideId == widget.rideId).toList();
   }
 
@@ -127,7 +126,8 @@ class _DriverActiveRideScreenState
 
   Future<void> _checkArrival() async {
     if (_navigatedToArrival) return;
-    final ride = _rideFromState();
+    final state = ref.read(driverRidesProvider);
+    final ride = _rideFromState(state);
     if (ride != null && ride.status == 'completed') {
       _navigatedToArrival = true;
       _pollTimer?.cancel();
@@ -413,8 +413,9 @@ class _DriverActiveRideScreenState
 
   @override
   Widget build(BuildContext context) {
-    final ride = _rideFromState();
-    final bookings = _bookingsForThisRide();
+    final state = ref.watch(driverRidesProvider);
+    final ride = _rideFromState(state);
+    final bookings = _bookingsForThisRide(state);
 
     if (ride == null) {
       return Scaffold(
@@ -989,8 +990,6 @@ class _PassengerCard extends StatelessWidget {
     final statusColor = _colorForDispatch(booking.dispatchStatus);
     final statusIcon = _iconForDispatch(booking.dispatchStatus);
 
-    final actions = _buildActions();
-
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 5),
       child: Padding(
@@ -1062,177 +1061,22 @@ class _PassengerCard extends StatelessWidget {
                 style: const TextStyle(fontSize: 11, color: AppTheme.subtle),
               ),
             ],
-            if (actions.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              if (actions.length == 1)
-                actions.first
-              else if (actions.length == 2)
-                Row(children: [
-                  Expanded(child: actions[0]),
-                  const SizedBox(width: 8),
-                  Expanded(child: actions[1]),
-                ])
-              else
-                ...actions.map((a) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: a,
-                    )),
-            ],
+            BookingFlowButtons(
+              booking: booking,
+              onAccept: onAccept,
+              onReject: onReject,
+              onMarkArriving: onMarkArriving,
+              onMarkArrived: onMarkArrived,
+              onStartTrip: onStartTrip,
+              onCompleteTrip: onCompleteTrip,
+              onReview: onReviewPassenger,
+              onFavorite: onFavoritePassenger,
+              isFavorite: isFavorite,
+            ),
           ],
         ),
       ),
     );
-  }
-
-  List<Widget> _buildActions() {
-    final actions = <Widget>[];
-
-    if (booking.isReserved &&
-        booking.dispatchStatus == BookingDispatchStatus.reserved) {
-      actions.addAll([
-        OutlinedButton(
-          onPressed: onReject,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppTheme.danger,
-            side: const BorderSide(color: AppTheme.danger),
-            minimumSize: const Size(0, 40),
-          ),
-          child: const Text('Rechazar'),
-        ),
-        ElevatedButton(
-          onPressed: onAccept,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF178E68),
-            foregroundColor: Colors.white,
-            minimumSize: const Size(0, 40),
-          ),
-          child: const Text('Aceptar'),
-        ),
-      ]);
-    } else if (booking.isReserved &&
-        booking.dispatchStatus == BookingDispatchStatus.accepted) {
-      actions.add(
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: onMarkArriving,
-            icon: const Icon(Icons.route_outlined, size: 18),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-            ),
-            label: const Text('En camino'),
-          ),
-        ),
-      );
-    } else if (booking.isReserved &&
-        booking.dispatchStatus == BookingDispatchStatus.driverArriving) {
-      actions.add(
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: onMarkArrived,
-            icon: const Icon(Icons.place_outlined, size: 18),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF178E68),
-              foregroundColor: Colors.white,
-            ),
-            label: const Text('Llegue a destino'),
-          ),
-        ),
-      );
-    } else if (booking.isReserved &&
-        booking.dispatchStatus == BookingDispatchStatus.driverArrived) {
-      actions.add(
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            children: [
-              Icon(Icons.access_time, size: 16, color: AppTheme.subtle),
-              SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'Esperando que el pasajero confirme abordaje...',
-                  style: TextStyle(color: AppTheme.subtle, fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    } else if (booking.canDriverStartTrip) {
-      actions.add(
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: onStartTrip,
-            icon: const Icon(Icons.play_arrow_rounded, size: 18),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-            ),
-            label: const Text('Iniciar viaje'),
-          ),
-        ),
-      );
-    } else if (booking.canDriverCompleteTrip) {
-      actions.add(
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: onCompleteTrip,
-            icon: const Icon(Icons.check_circle_outline, size: 18),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF178E68),
-              foregroundColor: Colors.white,
-            ),
-            label: const Text('Finalizar viaje'),
-          ),
-        ),
-      );
-    }
-
-    if (booking.isCompleted && onReviewPassenger != null) {
-      actions.add(
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: onReviewPassenger,
-            icon: const Icon(Icons.star_outline, size: 18),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-            ),
-            label: const Text('Calificar pasajero'),
-          ),
-        ),
-      );
-    }
-
-    if (onFavoritePassenger != null) {
-      actions.add(
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: onFavoritePassenger,
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  isFavorite ? const Color(0xFFFF5A7A) : Colors.white,
-              foregroundColor: isFavorite ? Colors.white : AppTheme.primary,
-            ),
-            icon: Icon(
-              isFavorite ? Icons.favorite : Icons.favorite_outline,
-              size: 18,
-            ),
-            label: Text(
-              isFavorite ? 'Pasajero favorito' : 'Agregar pasajero a favoritos',
-            ),
-          ),
-        ),
-      );
-    }
-
-    return actions;
   }
 
   static Color _colorForDispatch(BookingDispatchStatus status) {

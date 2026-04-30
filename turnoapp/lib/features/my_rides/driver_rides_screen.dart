@@ -26,6 +26,7 @@ import '../../providers/driver_rides_provider.dart';
 import '../../services/favorites_service.dart';
 import '../../services/review_service.dart';
 import '../../shared/widgets/app_snackbar.dart';
+import '../../shared/widgets/booking_flow_buttons.dart';
 import '../../shared/widgets/decorative_background.dart';
 import '../../shared/widgets/loading_overlay.dart';
 import '../../shared/widgets/review_dialog.dart';
@@ -926,158 +927,6 @@ class _PassengerBookingCard extends StatelessWidget {
       ),
     );
 
-    final actions = <Widget>[];
-    if (booking.isReserved &&
-        booking.dispatchStatus == BookingDispatchStatus.reserved) {
-      actions.add(
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: onReject == null ? null : () => onReject!(booking),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.danger,
-                  side: const BorderSide(color: AppTheme.danger),
-                ),
-                child: const Text('Rechazar'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: onAccept == null ? null : () => onAccept!(booking),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF178E68),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Aceptar'),
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (booking.isReserved &&
-        booking.dispatchStatus == BookingDispatchStatus.accepted) {
-      actions.add(
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed:
-                onMarkArriving == null ? null : () => onMarkArriving!(booking),
-            icon: const Icon(Icons.route_outlined),
-            label: const Text('Marcar en camino'),
-          ),
-        ),
-      );
-    } else if (booking.isReserved &&
-        booking.dispatchStatus == BookingDispatchStatus.driverArriving) {
-      actions.add(
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed:
-                onMarkArrived == null ? null : () => onMarkArrived!(booking),
-            icon: const Icon(Icons.place_outlined),
-            label: const Text('Marcar llegado'),
-          ),
-        ),
-      );
-    } else if (booking.isReserved &&
-        booking.dispatchStatus == BookingDispatchStatus.driverArrived) {
-      actions.add(
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            children: [
-              Icon(Icons.access_time, size: 16, color: AppTheme.subtle),
-              SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'Esperando que el pasajero confirme abordaje...',
-                  style: TextStyle(color: AppTheme.subtle, fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    } else if (booking.canDriverStartTrip) {
-      actions.add(
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: onStartTrip == null ? null : () => onStartTrip!(booking),
-            icon: const Icon(Icons.play_arrow_outlined),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-            ),
-            label: const Text('Iniciar viaje'),
-          ),
-        ),
-      );
-    } else if (booking.canDriverCompleteTrip) {
-      actions.add(
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed:
-                onCompleteTrip == null ? null : () => onCompleteTrip!(booking),
-            icon: const Icon(Icons.check_circle_outline),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF178E68),
-              foregroundColor: Colors.white,
-            ),
-            label: const Text('Finalizar y liquidar'),
-          ),
-        ),
-      );
-    }
-
-    if (booking.isCompleted && onReviewPassenger != null) {
-      actions.add(
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: onReviewPassenger == null
-                ? null
-                : () => onReviewPassenger!(booking),
-            icon: const Icon(Icons.star_outline),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-            ),
-            label: const Text('Calificar pasajero'),
-          ),
-        ),
-      );
-    }
-
-    if (onFavoritePassenger != null) {
-      actions.add(
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () => onFavoritePassenger!(booking),
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  isFavoritePassenger ? const Color(0xFFFF5A7A) : Colors.white,
-              foregroundColor:
-                  isFavoritePassenger ? Colors.white : AppTheme.primary,
-            ),
-            icon: Icon(
-              isFavoritePassenger ? Icons.favorite : Icons.favorite_outline,
-            ),
-            label: Text(
-              isFavoritePassenger
-                  ? 'Pasajero favorito'
-                  : 'Agregar pasajero a favoritos',
-            ),
-          ),
-        ),
-      );
-    }
-
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Padding(
@@ -1086,27 +935,28 @@ class _PassengerBookingCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             tile,
-            if (actions.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              if (actions.length == 1)
-                actions.first
-              else if (actions.length == 2)
-                Row(children: actions)
-              else
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    actions.first,
-                    const SizedBox(height: 8),
-                    ...actions.skip(1).map(
-                          (w) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: w,
-                          ),
-                        ),
-                  ],
-                ),
-            ],
+            BookingFlowButtons(
+              booking: booking,
+              onAccept: onAccept == null ? null : () => onAccept!(booking),
+              onReject: onReject == null ? null : () => onReject!(booking),
+              onMarkArriving: onMarkArriving == null
+                  ? null
+                  : () => onMarkArriving!(booking),
+              onMarkArrived:
+                  onMarkArrived == null ? null : () => onMarkArrived!(booking),
+              onStartTrip:
+                  onStartTrip == null ? null : () => onStartTrip!(booking),
+              onCompleteTrip: onCompleteTrip == null
+                  ? null
+                  : () => onCompleteTrip!(booking),
+              onReview: onReviewPassenger == null
+                  ? null
+                  : () => onReviewPassenger!(booking),
+              onFavorite: onFavoritePassenger == null
+                  ? null
+                  : () => onFavoritePassenger!(booking),
+              isFavorite: isFavoritePassenger,
+            ),
           ],
         ),
       ),
