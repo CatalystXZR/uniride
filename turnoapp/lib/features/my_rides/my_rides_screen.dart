@@ -74,7 +74,9 @@ class _MyRidesScreenState extends ConsumerState<MyRidesScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    Future.microtask(() => ref.read(myRidesProvider.notifier).load());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(myRidesProvider.notifier).load();
+    });
   }
 
   @override

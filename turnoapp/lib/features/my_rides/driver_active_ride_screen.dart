@@ -65,7 +65,9 @@ class _DriverActiveRideScreenState
   @override
   void initState() {
     super.initState();
-    _startPolling();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startPolling();
+    });
   }
 
   @override

@@ -60,7 +60,9 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
   @override
   void initState() {
     super.initState();
-    _startPolling();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startPolling();
+    });
   }
 
   @override

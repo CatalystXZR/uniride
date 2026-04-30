@@ -113,7 +113,9 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    Future.microtask(() => ref.read(driverRidesProvider.notifier).load());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(driverRidesProvider.notifier).load();
+    });
   }
 
   @override
@@ -627,53 +629,30 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen>
                               ],
                             ),
                           ),
-                        Column(
-                          children: [
-                            Container(
-                              width: double.infinity,
-                              color: const Color(0xFFFFEB3B),
-                              padding: const EdgeInsets.all(6),
-                              child: Text(
-                                'DEBUG: bookings=${state.bookings.length} loading=${state.loading} error=${state.errorMessage ?? "null"}',
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 12,
-                                ),
+                        if (state.bookings.isEmpty)
+                          const _EmptyState(
+                              message: 'Sin pasajeros registrados')
+                        else
+                          RefreshIndicator(
+                            onRefresh: _load,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              itemCount: state.bookings.length,
+                              itemBuilder: (ctx, i) => _PassengerBookingCard(
+                                booking: state.bookings[i],
+                                onAccept: _acceptBooking,
+                                onReject: _rejectBooking,
+                                onMarkArriving: _markArriving,
+                                onMarkArrived: _markArrived,
+                                onStartTrip: _startTrip,
+                                onCompleteTrip: _completeTrip,
+                                onFavoritePassenger: _toggleFavoritePassenger,
+                                isFavoritePassenger: _favoritePassengerIds
+                                    .contains(state.bookings[i].passengerId),
+                                onReviewPassenger: _reviewPassenger,
                               ),
                             ),
-                            Expanded(
-                              child: state.bookings.isEmpty
-                                  ? const _EmptyState(
-                                      message: 'Sin pasajeros registrados')
-                                  : RefreshIndicator(
-                                      onRefresh: _load,
-                                      child: ListView.builder(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 6),
-                                        itemCount: state.bookings.length,
-                                        itemBuilder: (ctx, i) =>
-                                            _PassengerBookingCard(
-                                          booking: state.bookings[i],
-                                          onAccept: _acceptBooking,
-                                          onReject: _rejectBooking,
-                                          onMarkArriving: _markArriving,
-                                          onMarkArrived: _markArrived,
-                                          onStartTrip: _startTrip,
-                                          onCompleteTrip: _completeTrip,
-                                          onFavoritePassenger:
-                                              _toggleFavoritePassenger,
-                                          isFavoritePassenger:
-                                              _favoritePassengerIds.contains(
-                                                  state
-                                                      .bookings[i].passengerId),
-                                          onReviewPassenger: _reviewPassenger,
-                                        ),
-                                      ),
-                                    ),
-                            ),
-                          ],
-                        ),
+                          ),
                       ],
                     ),
         ),
